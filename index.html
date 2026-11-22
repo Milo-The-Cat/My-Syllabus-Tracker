@@ -594,11 +594,12 @@ var cur='dash',curPaper={},openSet={},nameEdit=false;
 
 var NI={dash:'<rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/>',
  com:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M16 4.6a3.5 3.5 0 010 6.8M18 14.3c2.2.6 3.5 2.4 3.5 5.2"/>'};
+var SEN={phy:'Physics',math:'Higher Math',bio:'Biology',chem:'Chemistry',ict:'ICT'};
 function renderNav(){
   var h='<a href="#dash" class="'+(cur==='dash'?'on':'')+'"><svg class="ni" viewBox="0 0 24 24" aria-hidden="true">'+NI.dash+'</svg><span class="nt">Dashboard</span></a>';
   h+='<div class="grp">Subjects</div>';
   DATA.forEach(function(s){
-    h+='<a href="#'+s.id+'" class="s-'+s.id+(cur===s.id?' on':'')+'"><span class="dot"></span><span class="nt">'+s.short+'</span><small data-k="s:'+s.id+'" data-v="pct"></small></a>';
+    h+='<a href="#'+s.id+'" class="s-'+s.id+(cur===s.id?' on':'')+'"><span class="dot"></span><span class="nt">'+(SEN[s.id]||s.short)+'</span><small data-k="s:'+s.id+'" data-v="pct"></small></a>';
   });
   h+='<div class="grp">Together</div>';
   h+='<a href="#community" class="'+(cur==='community'?'on':'')+'"><svg class="ni" viewBox="0 0 24 24" aria-hidden="true">'+NI.com+'</svg><span class="nt">Community</span></a>';
@@ -700,7 +701,7 @@ function renderDash(){
 
 function renderSubject(s){
   var pid=curPaper[s.id]||s.papers[0].id,p=byId(s.papers,pid);
-  var h='<div class="narrow subj s-'+s.id+'"><div class="subhead"><h1>'+s.name+'</h1><div class="line"><span class="bar"><i data-k="s:'+s.id+'" data-v="bar"></i></span><b data-k="s:'+s.id+'" data-v="pct"></b></div>';
+  var h='<div class="narrow subj s-'+s.id+'"><div class="subhead"><h1>'+(SEN[s.id]||s.name)+'</h1><div class="line"><span class="bar"><i data-k="s:'+s.id+'" data-v="bar"></i></span><b data-k="s:'+s.id+'" data-v="pct"></b></div>';
   if(s.papers.length>1){
     h+='<div class="tabs" role="tablist">';
     s.papers.forEach(function(q){
