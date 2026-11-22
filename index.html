@@ -224,17 +224,21 @@ a{color:inherit;text-decoration:none}
 .cm-who{font-size:.75rem;opacity:.75}
 .cm-t{overflow-wrap:anywhere;white-space:pre-wrap}
 @media (max-width:640px){.cm-two{grid-template-columns:minmax(0,1fr)}}
+.brandbox{display:flex;flex-direction:column;line-height:1.3}
+.byline{font-size:.8rem;color:var(--muted)}
+.foot{text-align:center;color:var(--muted);font-size:.85rem;padding-top:8px}
 @media (prefers-reduced-motion:reduce){.bar i,.ring .arc{transition:none}}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="top">
-    <span class="brand">Syllabus Tracker</span>
+    <div class="brandbox"><span class="brand">Syllabus Tracker</span><span class="byline">Made by Azmain (DC-27)</span></div>
     <button class="btn" id="themeBtn" type="button">Light mode</button>
   </div>
   <nav class="nav" id="nav" aria-label="Subjects"></nav>
   <main id="app"></main>
+  <footer class="foot">Made by Azmain (DC-27)</footer>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
