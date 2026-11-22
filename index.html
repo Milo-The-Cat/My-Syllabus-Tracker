@@ -190,6 +190,40 @@ a{color:inherit;text-decoration:none}
   .erow .lf{grid-column:1 / 3;text-align:left}
   .stat{padding:14px}
 }
+
+.cm-head h1{font-size:1.6rem;margin-bottom:4px}
+.cm-auth{display:flex;flex-direction:column;gap:8px;max-width:460px}
+.cm-l{font-size:.85rem;color:var(--muted);margin-top:6px;display:block}
+.cm-in{width:100%;min-width:0;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 12px}
+.cm-row{display:flex;gap:8px}
+.cm-row .cm-in{flex:1}
+.cm-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:14px}
+.cm-me{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.cm-groups{display:flex;flex-wrap:wrap;gap:8px}
+.cm-g,.cm-tabs button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 16px}
+.cm-g.on,.cm-tabs button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.cm-tabs{display:flex;gap:8px;margin:12px 0}
+.cm-gh{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.cm-code{letter-spacing:.12em;font-family:ui-monospace,Menlo,Consolas,monospace;margin-right:8px}
+.cm-note{margin:6px 0;font-size:.92rem}
+.cm-note.err{color:#e5484d}
+.cm-note.ok{color:var(--ok)}
+.cm-board{display:flex;flex-direction:column;gap:8px}
+.cm-r{display:grid;grid-template-columns:1.6rem 2.2rem minmax(0,1fr) auto;gap:2px 12px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:12px}
+.cm-r.me{border-color:var(--accent);background:var(--accent-soft)}
+.cm-rk{font-weight:700;color:var(--muted);text-align:center}
+.cm-av{width:2.2rem;height:2.2rem;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700}
+.cm-r.me .cm-av{background:var(--surface)}
+.cm-mid{display:flex;flex-direction:column;gap:4px;min-width:0}
+.cm-nm{font-weight:600;overflow-wrap:anywhere}
+.cm-pc{font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums}
+.cm-sub{grid-column:3 / 5;font-size:.82rem;color:var(--muted)}
+.cm-msgs{height:min(55vh,420px);overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:6px 2px;margin-bottom:10px}
+.cm-m{max-width:80%;align-self:flex-start;background:var(--accent-soft);border-radius:12px;padding:8px 12px;display:flex;flex-direction:column;gap:2px}
+.cm-m.mine{align-self:flex-end;background:var(--accent);color:var(--accent-ink)}
+.cm-who{font-size:.75rem;opacity:.75}
+.cm-t{overflow-wrap:anywhere;white-space:pre-wrap}
+@media (max-width:640px){.cm-two{grid-template-columns:minmax(0,1fr)}}
 @media (prefers-reduced-motion:reduce){.bar i,.ring .arc{transition:none}}
 </style>
 </head>
@@ -203,6 +237,7 @@ a{color:inherit;text-decoration:none}
   <main id="app"></main>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 (function(){
 var DATA=[
@@ -482,6 +517,7 @@ function renderNav(){
   DATA.forEach(function(s){
     h+='<a href="#'+s.id+'" class="'+(cur===s.id?'on':'')+'">'+s.short+' <small data-k="s:'+s.id+'" data-v="pct"></small></a>';
   });
+  h+='<a href="#community" class="'+(cur==='community'?'on':'')+'">Community</a>';
   nav.innerHTML=h;
 }
 
@@ -619,13 +655,13 @@ setInterval(live,1000);
 function render(){
   var s=byId(DATA,cur);
   renderNav();
-  if(s)renderSubject(s);else renderDash();
+  if(s)renderSubject(s);else if(cur==='community')renderCommunity();else renderDash();
   updateStats();
   live();
 }
 function route(){
   var h=location.hash.slice(1);
-  cur=(h&&byId(DATA,h))?h:'dash';
+  cur=(h&&(byId(DATA,h)||h==='community'))?h:'dash';
   render();
   window.scrollTo(0,0);
 }
@@ -697,6 +733,7 @@ function saveName(){
 app.addEventListener('keydown',function(e){
   var ds=e.target.dataset||{};
   if(e.key!=='Enter')return;
+  if(ds.act&&ds.act.indexOf('cm')===0){e.preventDefault();cmKey(ds.act);return}
   if(ds.act==='addin'){e.preventDefault();addTopic(ds.ck)}
   else if(ds.act==='exin'){e.preventDefault();addEx()}
   else if(ds.act==='tkin'){e.preventDefault();addTask()}
@@ -706,6 +743,7 @@ app.addEventListener('click',function(e){
   var el=e.target.closest('[data-act]');
   if(!el)return;
   var act=el.dataset.act;
+  if(act.indexOf('cm')===0){cmClick(el,act);return}
   if(act==='paper'){curPaper[el.dataset.sid]=el.dataset.p;render()}
   else if(act==='add'){addTopic(el.dataset.ck)}
   else if(act==='del'){
@@ -760,6 +798,238 @@ app.addEventListener('click',function(e){
   }
 });
 
+/* ===== Community (Supabase) ===== */
+var SB_URL='https://oimeinixlxhcrsjhzhed.supabase.co';   /* paste your Supabase Project URL between the quotes */
+var SB_KEY='sb_publishable_9A8ZW681g4q_gcyA5-rKjw_QRIJLMWv';   /* paste your Supabase anon public key between the quotes */
+var cmSb=null;
+var CM={ready:false,user:null,name:'Student',mode:'in',msg:'',err:false,busy:false,arm:false,groups:[],gid:null,tab:'board',rows:[],msgs:[],names:{},ch:null};
+
+function cmRun(b){return Promise.resolve(b).then(function(r){if(r&&r.error)throw r.error;return r?r.data:null})}
+function cmMsg(t,isErr){CM.msg=t||'';CM.err=!!isErr;cmPaint()}
+function cmFail(e){CM.busy=false;cmMsg((e&&e.message)?e.message:'Something went wrong. Check your connection and try again.',true)}
+function cmNote(){return CM.msg?'<p class="cm-note '+(CM.err?'err':'ok')+'" role="status">'+esc(CM.msg)+'</p>':''}
+function cmGroup(){for(var i=0;i<CM.groups.length;i++)if(CM.groups[i].id===CM.gid)return CM.groups[i];return null}
+function cmEl(id){return document.getElementById(id)}
+function cmVal(id){var e=cmEl(id);return e?e.value:''}
+
+function cmInit(){
+  if(!SB_URL||!SB_KEY||!window.supabase)return;
+  try{cmSb=window.supabase.createClient(SB_URL,SB_KEY)}catch(e){cmSb=null;return}
+  cmSb.auth.onAuthStateChange(function(ev,session){
+    setTimeout(function(){cmSetUser(session?session.user:null)},0);
+  });
+  Promise.resolve(cmSb.auth.getSession()).then(function(r){
+    var s=r&&r.data?r.data.session:null;
+    setTimeout(function(){if(!CM.ready)cmSetUser(s?s.user:null)},0);
+  }).catch(function(){setTimeout(function(){if(!CM.ready)cmSetUser(null)},0)});
+}
+function cmSetUser(u){
+  var nid=u?u.id:null,oid=CM.user?CM.user.id:null,first=!CM.ready;
+  CM.ready=true;
+  if(!first&&nid===oid){CM.user=u;return}
+  CM.user=u;CM.groups=[];CM.gid=null;CM.rows=[];CM.msgs=[];CM.msg='';cmUnsub();
+  if(u){
+    CM.name=(u.user_metadata&&u.user_metadata.name)||CM.name||'Student';
+    cmRun(cmSb.from('profiles').upsert({id:u.id,name:CM.name})).then(function(){cmPushStats();return cmLoadGroups()}).catch(cmFail);
+  }
+  cmPaint();
+}
+function cmLoadGroups(sel){
+  return cmRun(cmSb.from('members').select('group_id, groups(id,name,code)').eq('user_id',CM.user.id)).then(function(rows){
+    CM.groups=(rows||[]).map(function(r){return Array.isArray(r.groups)?r.groups[0]:r.groups}).filter(Boolean);
+    var want=sel||CM.gid;
+    CM.gid=(want&&CM.groups.some(function(g){return g.id===want}))?want:(CM.groups[0]?CM.groups[0].id:null);
+    if(!CM.gid){CM.rows=[];CM.msgs=[];cmUnsub()}
+    cmPaint();
+    if(CM.gid)cmOpenGroup();
+  });
+}
+function cmLoadBoard(){
+  var gid=CM.gid;if(!gid)return;
+  cmRun(cmSb.from('members').select('user_id').eq('group_id',gid)).then(function(ms){
+    var ids=(ms||[]).map(function(x){return x.user_id});
+    return Promise.all([cmRun(cmSb.from('profiles').select('id,name').in('id',ids)),cmRun(cmSb.from('stats').select('*').in('user_id',ids))]).then(function(a){
+      if(gid!==CM.gid)return;
+      (a[0]||[]).forEach(function(p){CM.names[p.id]=p.name});
+      var sm={};(a[1]||[]).forEach(function(s){sm[s.user_id]=s});
+      CM.rows=ids.map(function(id){return {id:id,name:CM.names[id]||'Student',s:sm[id]||null}});
+      cmPaint();
+    });
+  }).catch(cmFail);
+}
+function cmOpenGroup(){
+  var gid=CM.gid;if(!gid)return;
+  CM.rows=[];CM.msgs=[];
+  cmLoadBoard();
+  cmRun(cmSb.from('messages').select('*').eq('group_id',gid).order('id',{ascending:false}).limit(100)).then(function(d){
+    if(gid!==CM.gid)return;
+    CM.msgs=(d||[]).slice().reverse();cmPaintMsgs(true);
+  }).catch(cmFail);
+  cmUnsub();
+  CM.ch=cmSb.channel('msgs-'+gid).on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:'group_id=eq.'+gid},function(pl){
+    var m=pl.new;if(!m||gid!==CM.gid)return;
+    if(!CM.msgs.some(function(x){return x.id===m.id})){CM.msgs.push(m);cmPaintMsgs(false)}
+    if(!CM.names[m.user_id])cmLoadBoard();
+  }).subscribe();
+}
+function cmUnsub(){if(CM.ch&&cmSb){try{cmSb.removeChannel(CM.ch)}catch(e){}}CM.ch=null}
+
+function cmPushStats(){
+  if(!cmSb||!CM.user)return;
+  var a=allStat(),wk=0,d=new Date();
+  for(var i=0;i<7;i++){wk+=S.log[dkey(d)]||0;d.setDate(d.getDate()-1)}
+  var row={user_id:CM.user.id,overall_pct:+ratio(a).toFixed(2),topics_done:a.d,topics_total:a.t,today_sec:Math.floor(todaySec()),today_date:dkey(new Date()),week_sec:Math.floor(wk+elapsed()),streak:streak(),updated_at:new Date().toISOString()};
+  cmRun(cmSb.from('stats').upsert(row)).then(function(){
+    if(cur==='community'&&CM.tab==='board'&&CM.gid)cmLoadBoard();
+  }).catch(function(){});
+}
+
+function renderCommunity(){
+  cmPaint();
+  if(cmSb&&CM.user)cmPushStats();
+}
+function cmPaint(){
+  if(cur!=='community')return;
+  var keep={},act=document.activeElement,fid=(act&&act.id&&act.id.indexOf('cm-')===0)?act.id:null;
+  app.querySelectorAll('[id^=cm-]').forEach(function(i){if(typeof i.value==='string'&&i.value)keep[i.id]=i.value});
+  app.innerHTML=cmHtml();
+  Object.keys(keep).forEach(function(k){var n=cmEl(k);if(n&&typeof n.value==='string')n.value=keep[k]});
+  if(fid){var f=cmEl(fid);if(f&&f.focus)f.focus()}
+  cmPaintMsgs(true);
+}
+function cmHtml(){
+  var h='<section class="card cm-head"><h1>Community</h1><p class="sub">Study with friends. Join a private group to see each other\'s progress and chat.</p></section>';
+  if(!SB_URL||!SB_KEY)return h+'<section class="card"><h2>Not set up yet</h2><p class="sub">This site is not connected to a community server yet.</p></section>';
+  if(!window.supabase||!cmSb)return h+'<section class="card"><h2>Could not load</h2><p class="sub">The community service did not load. Check your internet connection and reload the page.</p></section>';
+  if(!CM.ready)return h+'<section class="card"><p class="sub">Connecting…</p></section>';
+  if(!CM.user)return h+cmAuthHtml();
+  return h+cmMainHtml();
+}
+function cmAuthHtml(){
+  var up=CM.mode==='up';
+  var h='<section class="card cm-auth"><div class="cm-tabs"><button type="button" class="'+(up?'':'on')+'" data-act="cmmode" data-mode="in">Sign in</button><button type="button" class="'+(up?'on':'')+'" data-act="cmmode" data-mode="up">Create account</button></div>';
+  if(up)h+='<label class="cm-l" for="cm-name">Your name</label><input class="cm-in" id="cm-name" maxlength="30" autocomplete="nickname" data-act="cmauthin" placeholder="The name your group will see">';
+  h+='<label class="cm-l" for="cm-email">Email</label><input class="cm-in" id="cm-email" type="email" autocomplete="email" data-act="cmauthin" placeholder="you@example.com">';
+  h+='<label class="cm-l" for="cm-pass">Password</label><input class="cm-in" id="cm-pass" type="password" autocomplete="'+(up?'new-password':'current-password')+'" data-act="cmauthin" placeholder="At least 6 characters">';
+  h+=cmNote()+'<button class="btn pri" type="button" data-act="cmauth"'+(CM.busy?' disabled':'')+'>'+(up?'Create account':'Sign in')+'</button>';
+  if(up)h+='<p class="sub">Your overall progress, study time and streak are visible to the people in your groups. Your notes and topic lists stay private.</p>';
+  return h+'</section>';
+}
+function cmMainHtml(){
+  var h='<section class="card cm-me"><div><b>'+esc(CM.name)+'</b><span class="sub"> · signed in</span></div><button class="btn" type="button" data-act="cmout">Sign out</button></section>'+cmNote();
+  h+='<section class="card"><h2>Your groups</h2>';
+  if(CM.groups.length){
+    h+='<div class="cm-groups">';
+    CM.groups.forEach(function(g){h+='<button type="button" class="cm-g'+(g.id===CM.gid?' on':'')+'" data-act="cmsel" data-id="'+esc(g.id)+'">'+esc(g.name)+'</button>'});
+    h+='</div>';
+  }else h+='<p class="sub">You are not in a group yet. Create one or join with an invite code.</p>';
+  h+='<div class="cm-two"><div><label class="cm-l" for="cm-gname">Create a group</label><div class="cm-row"><input class="cm-in" id="cm-gname" maxlength="40" data-act="cmcreatein" placeholder="Group name"><button class="btn pri" type="button" data-act="cmcreate">Create</button></div></div>';
+  h+='<div><label class="cm-l" for="cm-code">Join with an invite code</label><div class="cm-row"><input class="cm-in" id="cm-code" maxlength="12" data-act="cmjoinin" placeholder="e.g. A1B2C3"><button class="btn" type="button" data-act="cmjoin">Join</button></div></div></div></section>';
+  var g=cmGroup();
+  if(g){
+    h+='<section class="card"><div class="cm-gh"><div><h2>'+esc(g.name)+'</h2><p class="sub">Invite code: <b class="cm-code">'+esc(g.code)+'</b><button class="btn" type="button" data-act="cmcopy" data-code="'+esc(g.code)+'">Copy</button></p></div><button class="btn" type="button" data-act="cmleave">'+(CM.arm?'Tap again to leave':'Leave group')+'</button></div>';
+    h+='<div class="cm-tabs"><button type="button" class="'+(CM.tab==='board'?'on':'')+'" data-act="cmtab" data-tab="board">Leaderboard</button><button type="button" class="'+(CM.tab==='chat'?'on':'')+'" data-act="cmtab" data-tab="chat">Chat</button></div>';
+    h+=CM.tab==='chat'?cmChatHtml():cmBoardHtml();
+    h+='</section>';
+  }
+  return h;
+}
+function cmBoardHtml(){
+  if(!CM.rows.length)return '<p class="sub">Loading…</p>';
+  var today=dkey(new Date()),y=new Date();y.setDate(y.getDate()-1);y=dkey(y);
+  var rows=CM.rows.map(function(r){
+    var s=r.s||{};
+    return {id:r.id,name:r.name||'Student',pct:+s.overall_pct||0,sec:(s.today_date===today)?(+s.today_sec||0):0,st:(s.today_date&&s.today_date>=y)?(+s.streak||0):0};
+  });
+  rows.sort(function(a,b){return b.pct-a.pct||b.sec-a.sec});
+  var h='<div class="cm-board">';
+  rows.forEach(function(r,i){
+    var me=CM.user&&r.id===CM.user.id;
+    h+='<div class="cm-r'+(me?' me':'')+'"><span class="cm-rk">'+(i+1)+'</span><span class="cm-av">'+esc(r.name.charAt(0).toUpperCase())+'</span><span class="cm-mid"><span class="cm-nm">'+esc(r.name)+(me?' (you)':'')+'</span><span class="bar"><i style="width:'+Math.min(100,r.pct)+'%"></i></span></span><span class="cm-pc">'+r.pct.toFixed(1)+'%</span><span class="cm-sub">'+fmt(r.sec)+' today · '+r.st+(r.st===1?' day':' days')+' streak</span></div>';
+  });
+  return h+'</div>';
+}
+function cmChatHtml(){
+  return '<div class="cm-msgs" id="cm-msgs" aria-live="polite"></div><div class="cm-row"><input class="cm-in" id="cm-msg" maxlength="500" autocomplete="off" data-act="cmmsgin" placeholder="Write a message"><button class="btn pri" type="button" data-act="cmsend">Send</button></div>';
+}
+function cmPaintMsgs(force){
+  var box=cmEl('cm-msgs');if(!box)return;
+  var near=box.scrollHeight-box.scrollTop-box.clientHeight<80;
+  if(!CM.msgs.length){box.innerHTML='<p class="sub">No messages yet. Say hello!</p>';return}
+  box.innerHTML=CM.msgs.map(function(m){
+    var mine=CM.user&&m.user_id===CM.user.id,d=new Date(m.created_at);
+    return '<div class="cm-m'+(mine?' mine':'')+'"><span class="cm-who">'+esc(mine?'You':(CM.names[m.user_id]||'Student'))+' · '+pad(d.getHours())+':'+pad(d.getMinutes())+'</span><span class="cm-t">'+esc(m.body)+'</span></div>';
+  }).join('');
+  if(force||near)box.scrollTop=box.scrollHeight;
+}
+
+function cmAuth(){
+  var email=cmVal('cm-email').trim(),pass=cmVal('cm-pass'),up=CM.mode==='up',name='';
+  if(up){name=cmVal('cm-name').trim().slice(0,30);if(!name)return cmMsg('Enter your name.',true)}
+  if(!email||pass.length<6)return cmMsg('Enter your email and a password of at least 6 characters.',true);
+  CM.busy=true;cmMsg('');
+  if(up)CM.name=name;
+  var req=up?cmSb.auth.signUp({email:email,password:pass,options:{data:{name:name}}}):cmSb.auth.signInWithPassword({email:email,password:pass});
+  Promise.resolve(req).then(function(r){
+    CM.busy=false;
+    if(r.error)throw r.error;
+    if(up&&!(r.data&&r.data.session))cmMsg('Account created. Check your email to confirm it, then sign in.');
+    else cmMsg('');
+  }).catch(cmFail);
+}
+function cmCreate(){
+  var n=cmVal('cm-gname').trim();
+  if(!n)return cmMsg('Enter a group name.',true);
+  cmRun(cmSb.rpc('create_group',{gname:n})).then(function(d){
+    var e=cmEl('cm-gname');if(e)e.value='';
+    CM.msg='';CM.tab='board';
+    return cmLoadGroups(d&&d.id);
+  }).catch(cmFail);
+}
+function cmJoin(){
+  var c=cmVal('cm-code').trim();
+  if(!c)return cmMsg('Enter an invite code.',true);
+  cmRun(cmSb.rpc('join_group',{invite:c})).then(function(d){
+    var e=cmEl('cm-code');if(e)e.value='';
+    CM.msg='';CM.tab='board';
+    cmPushStats();
+    return cmLoadGroups(d&&d.id);
+  }).catch(cmFail);
+}
+function cmSend(){
+  var i=cmEl('cm-msg'),v=i?i.value.trim():'';
+  if(!v||!CM.gid||!CM.user)return;
+  i.value='';
+  cmRun(cmSb.from('messages').insert({group_id:CM.gid,user_id:CM.user.id,body:v}).select().single()).then(function(m){
+    if(m&&!CM.msgs.some(function(x){return x.id===m.id})){CM.msgs.push(m);cmPaintMsgs(true)}
+  }).catch(function(e){var j=cmEl('cm-msg');if(j)j.value=v;cmFail(e)});
+}
+function cmClick(el,act){
+  if(act==='cmmode'){CM.mode=el.dataset.mode;CM.msg='';cmPaint()}
+  else if(act==='cmauth'){cmAuth()}
+  else if(act==='cmout'){Promise.resolve(cmSb.auth.signOut()).catch(cmFail)}
+  else if(act==='cmsel'){CM.gid=el.dataset.id;CM.tab='board';CM.msg='';cmPaint();cmOpenGroup()}
+  else if(act==='cmtab'){CM.tab=el.dataset.tab;CM.msg='';cmPaint();if(CM.tab==='board')cmLoadBoard()}
+  else if(act==='cmcreate'){cmCreate()}
+  else if(act==='cmjoin'){cmJoin()}
+  else if(act==='cmsend'){cmSend()}
+  else if(act==='cmcopy'){
+    var code=el.dataset.code;
+    try{navigator.clipboard.writeText(code).then(function(){cmMsg('Invite code copied.')},function(){cmMsg('Could not copy. Select the code and copy it by hand.',true)})}
+    catch(err){cmMsg('Could not copy. Select the code and copy it by hand.',true)}
+  }else if(act==='cmleave'){
+    if(!CM.arm){CM.arm=true;cmPaint();setTimeout(function(){CM.arm=false;cmPaint()},4000);return}
+    CM.arm=false;
+    cmRun(cmSb.from('members').delete().eq('group_id',CM.gid).eq('user_id',CM.user.id)).then(function(){CM.gid=null;return cmLoadGroups()}).catch(cmFail);
+  }
+}
+function cmKey(act){
+  if(act==='cmauthin')cmAuth();
+  else if(act==='cmcreatein')cmCreate();
+  else if(act==='cmjoinin')cmJoin();
+  else if(act==='cmmsgin')cmSend();
+}
+
 /* theme: dark by default */
 var themeBtn=document.getElementById('themeBtn');
 function isDark(){
@@ -779,6 +1049,8 @@ themeBtn.addEventListener('click',function(){
 });
 themeLabel();
 
+cmInit();
+setInterval(cmPushStats,60000);
 route();
 })();
 </script>
