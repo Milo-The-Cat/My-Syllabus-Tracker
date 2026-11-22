@@ -677,7 +677,7 @@ function tasksToShow(){
   var t=dkey(new Date());
   return S.tasks.filter(function(x){return x.date===t||(!x.done&&x.date<t)}).sort(function(a,b){return (a.done?1:0)-(b.done?1:0)});
 }
-function greeting(){var h=new Date().getHours();return h<12?'Good morning':h<17?'Good afternoon':'Good evening'}
+function greeting(){var h=new Date().getHours();return h<5?'Good night':h<12?'Good morning':h<17?'Good afternoon':h<21?'Good evening':'Good night'}
 
 
 /* ===== New features: pomodoro, heatmap, plan, badges, revision, weak ===== */
