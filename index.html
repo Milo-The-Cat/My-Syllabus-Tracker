@@ -1,0 +1,786 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Syllabus Tracker</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Hind+Siliguri:wght@400;500;600&display=swap">
+<style>
+/* Layout: dark-first dashboard. Top greeting and stat cards, then a two-column grid (subjects and weekly chart | continue, plan, achievement), then exams and backup. Indigo to violet accent, used on progress and the primary action. */
+:root{
+  --bg:#f3f2fb; --glow:#e3dffb; --surface:#ffffff; --fg:#14122b; --muted:#6a6788; --line:#dedbf2;
+  --accent:#5b4bdb; --accent2:#8b6cf0; --accent-ink:#ffffff; --accent-soft:#ebe8fd; --track:#e6e3f7; --ok:#12805a;
+  --font-b:'Plus Jakarta Sans','Hind Siliguri','Noto Sans Bengali',system-ui,sans-serif;
+  --font-d:'Plus Jakarta Sans','Hind Siliguri','Noto Sans Bengali',system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0a0918; --glow:#241f5c; --surface:#12112a; --fg:#eceaff; --muted:#9a97bd; --line:#26234a;
+    --accent:#7c6cf6; --accent2:#a78bfa; --accent-ink:#ffffff; --accent-soft:#1c1946; --track:#1f1c40; --ok:#3ccf91;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0a0918; --glow:#241f5c; --surface:#12112a; --fg:#eceaff; --muted:#9a97bd; --line:#26234a;
+  --accent:#7c6cf6; --accent2:#a78bfa; --accent-ink:#ffffff; --accent-soft:#1c1946; --track:#1f1c40; --ok:#3ccf91;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:radial-gradient(1000px 420px at 12% -8%, var(--glow), transparent 62%), var(--bg);
+  background-color:var(--bg);
+  color:var(--fg); font-family:var(--font-b); font-size:16px; line-height:1.6;
+  padding-block:18px 56px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+main{display:flex;flex-direction:column;gap:16px;min-width:0}
+h1,h2,h3{font-family:var(--font-d);margin:0;line-height:1.3;text-wrap:balance}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{font-weight:800;font-size:1.05rem;letter-spacing:-.01em}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:7px 14px;font-size:.9rem;font-weight:600}
+.btn:hover{border-color:var(--accent)}
+.btn.pri{background:linear-gradient(90deg,var(--accent),var(--accent2));color:var(--accent-ink);border-color:transparent}
+.btn.big{flex:1;padding:12px 16px;font-size:1rem;font-weight:700}
+
+.nav{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+.nav a{flex:0 0 auto;display:flex;gap:8px;align-items:center;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 14px;font-size:.92rem;white-space:nowrap;font-weight:500}
+.nav a small{color:var(--muted);font-size:.8rem}
+.nav a.on{background:linear-gradient(90deg,var(--accent),var(--accent2));border-color:transparent;color:var(--accent-ink);font-weight:700}
+.nav a.on small{color:inherit;opacity:.85}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:18px;min-width:0}
+.card h2{font-size:1.15rem;font-weight:700}
+.chead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.sub{color:var(--muted);font-size:.92rem;margin:0}
+
+.dhead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.dhead h1{font-size:clamp(1.7rem,5vw,2.4rem);font-weight:800;letter-spacing:-.02em}
+.dhead p{margin:4px 0 10px;color:var(--muted)}
+.pill{border:1px solid var(--line);border-radius:999px;padding:8px 16px;font-weight:600;font-size:.9rem;background:var(--surface);white-space:nowrap}
+.nameedit{display:flex;gap:8px;flex-wrap:wrap}
+.nameedit input{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:6px 12px;min-width:0;width:12rem}
+
+.stats{display:grid;grid-template-columns:1.45fr repeat(4,minmax(0,1fr));gap:12px}
+.stat{padding:16px;display:flex;flex-direction:column;gap:2px}
+.ico{width:40px;height:40px;border-radius:12px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:10px;flex:0 0 auto}
+.ico svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.stat .lbl{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.stat .val{font-size:clamp(1.3rem,3vw,1.7rem);font-weight:800;line-height:1.25;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.stat .val.sm{font-size:1.05rem}
+.stat .cap{color:var(--muted);font-size:.85rem}
+.goalin{width:4.4rem;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:1px 6px;text-align:center;font-size:.85rem}
+.overall{flex-direction:row;align-items:center;gap:14px;background:linear-gradient(135deg,var(--accent-soft),var(--surface));border-color:color-mix(in srgb,var(--accent) 35%,var(--line))}
+.overall .ov{min-width:0;flex:1}
+.overall .ov .nm{font-weight:700;font-size:1.05rem}
+.overall .ov .bar{margin-top:8px}
+.ring{position:relative;width:84px;height:84px;flex:0 0 auto}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .trk{fill:none;stroke:var(--track);stroke-width:10}
+.ring .arc{fill:none;stroke:var(--accent);stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset .4s}
+.ring .txt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.ring .txt b{font-size:.95rem;font-weight:800;font-variant-numeric:tabular-nums}
+
+.dgrid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px;align-items:start}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.bar{display:block;height:8px;background:var(--track);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:99px;transition:width .35s}
+
+.prow{display:grid;grid-template-columns:40px minmax(0,1fr) auto;grid-template-areas:"tile nm pc" "tile ct pc" ". bar bar";gap:0 14px;align-items:center;padding:10px 8px;border-radius:14px}
+.prow:hover{background:var(--accent-soft)}
+.prow .tile{grid-area:tile;width:40px;height:40px;border-radius:12px;background:var(--accent-soft);color:var(--accent);font-weight:800;display:flex;align-items:center;justify-content:center;font-size:.8rem}
+.prow .nm{grid-area:nm;font-weight:700;min-width:0}
+.prow .ct{grid-area:ct;color:var(--muted);font-size:.85rem}
+.prow .pc{grid-area:pc;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums}
+.prow .bar{grid-area:bar;height:6px;margin-top:6px}
+
+.cont{border-color:color-mix(in srgb,var(--accent) 45%,var(--line));background:linear-gradient(160deg,var(--accent-soft),var(--surface) 70%)}
+.eyebrow{font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:800}
+.cont h2{font-size:1.4rem;margin:6px 0 2px;font-weight:800}
+.cont .bar{margin-top:12px}
+.btns{display:flex;gap:10px;margin-top:14px}
+.timer{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px}
+.timer small{color:var(--muted);display:block}
+.timer b{font-size:2.1rem;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.2;display:block}
+.tbtns{display:flex;gap:8px;flex-wrap:wrap}
+
+.tl2{list-style:none;margin:0 0 10px;padding:0}
+.tl2 li{display:flex;align-items:center;gap:8px;padding:5px 0}
+.tl2 label{flex:1;min-width:0;display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+.tl2 input[type=checkbox]{width:1.15rem;height:1.15rem;margin-top:.3rem;accent-color:var(--accent);flex:0 0 auto}
+.tl2 input:checked + span{color:var(--muted);text-decoration:line-through}
+.tag{font-size:.7rem;font-weight:700;color:#b45309;background:color-mix(in srgb,#f59e0b 20%,transparent);border-radius:6px;padding:0 6px;margin-left:6px}
+.empty{color:var(--muted);text-align:center;padding:12px 0}
+.ach{display:flex;gap:14px;align-items:center;background:linear-gradient(160deg,color-mix(in srgb,var(--ok) 16%,var(--surface)),var(--surface));border-color:color-mix(in srgb,var(--ok) 35%,var(--line))}
+.ach .ico{width:52px;height:52px;margin:0;background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}
+.ach .ico svg{width:26px;height:26px}
+.ach h2{font-size:1.2rem;font-weight:800}
+
+.wk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;height:130px;margin-top:6px}
+.wk .c{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px;min-width:0}
+.wk .c i{display:block;width:100%;max-width:34px;border-radius:8px 8px 4px 4px;background:linear-gradient(180deg,var(--accent2),var(--accent));min-height:4px}
+.wk .c span{font-size:.72rem;color:var(--muted)}
+
+.x{border:0;background:none;color:var(--muted);font-size:1.2rem;line-height:1;padding:4px 8px;border-radius:6px}
+.x:hover{color:var(--fg);background:var(--track)}
+.addrow{display:flex;gap:8px;margin:6px 0 10px}
+.addrow input{flex:1;min-width:0;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:7px 12px}
+.exadd{flex-wrap:wrap;margin-top:14px}
+.exadd input[type=text]{flex:1 1 12rem}
+.exadd input[type=date]{flex:0 0 auto}
+
+.erow{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(5.5rem,auto);gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.erow:first-of-type{border-top:0}
+.erow input[type=date]{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:4px 8px;min-width:0}
+.erow .lf{text-align:right;font-weight:700;color:var(--accent);font-size:.92rem}
+.erow .lb{min-width:0}
+
+.bk textarea{width:100%;min-height:90px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:8px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;resize:vertical}
+.bk .acts{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.bk summary{cursor:pointer;font-weight:700}
+.msg{font-size:.9rem;color:var(--ok)}
+.nl{display:block;font-size:.85rem;color:var(--muted);margin-bottom:4px}
+
+.narrow{max-width:860px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.subhead{display:flex;flex-direction:column;gap:10px}
+.subhead .line{display:flex;align-items:center;gap:12px}
+.subhead .line .bar{flex:1}
+.subhead .line b{font-variant-numeric:tabular-nums;min-width:3rem;text-align:right}
+.tabs{display:flex;gap:8px}
+.tabs button{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:6px 14px;font-weight:600}
+.tabs button.on{background:linear-gradient(90deg,var(--accent),var(--accent2));color:var(--accent-ink);border-color:transparent}
+.tabs button span{margin-left:6px;opacity:.85;font-size:.85rem}
+.rows{display:flex;flex-direction:column;gap:10px}
+.ch{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.ch[open]{border-color:var(--accent)}
+.ch summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:2rem minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:12px 14px}
+.ch summary::-webkit-details-marker{display:none}
+.ch .no{width:2rem;height:2rem;border-radius:10px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem}
+.ch .nm{font-weight:600;min-width:0}
+.ch .meta{display:flex;gap:10px;align-items:center;font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.ch .meta b{color:var(--fg);min-width:2.6rem;text-align:right}
+.ch summary .bar{grid-column:2 / 4;height:6px}
+.ch .body{padding:4px 14px 16px;border-top:1px solid var(--line)}
+.tl{list-style:none;margin:8px 0;padding:0}
+.tl li{display:flex;align-items:center;gap:6px}
+.tl label{flex:1;display:flex;gap:10px;align-items:flex-start;padding:7px 0;cursor:pointer;min-width:0}
+.tl input[type=checkbox]{width:1.2rem;height:1.2rem;margin-top:.28rem;accent-color:var(--accent);flex:0 0 auto}
+.tl label span{min-width:0}
+.tl input:checked + span{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--line)}
+.bulk{display:flex;gap:8px;margin-bottom:12px}
+.ch textarea{width:100%;min-height:84px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:8px 10px;resize:vertical;line-height:1.6}
+
+@media (max-width:1000px){
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stats .overall{grid-column:1 / -1}
+}
+@media (max-width:860px){
+  .dgrid{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:520px){
+  .erow{grid-template-columns:minmax(0,1fr) auto}
+  .erow .lf{grid-column:1 / 3;text-align:left}
+  .stat{padding:14px}
+}
+@media (prefers-reduced-motion:reduce){.bar i,.ring .arc{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <span class="brand">Syllabus Tracker</span>
+    <button class="btn" id="themeBtn" type="button">Light mode</button>
+  </div>
+  <nav class="nav" id="nav" aria-label="Subjects"></nav>
+  <main id="app"></main>
+</div>
+
+<script>
+(function(){
+var DATA=[
+{id:'phy',name:'পদার্থবিজ্ঞান',short:'পদার্থ',papers:[
+ {id:'phy1',name:'১ম পত্র',ch:[
+  ['ভৌতজগৎ ও পরিমাপ','পদার্থবিজ্ঞানের পরিধি ও গুরুত্ব|পরিমাপ ও একক|মাত্রা ও মাত্রা সমীকরণ|পরিমাপে ত্রুটি ও নির্ভুলতা|সার্থক অঙ্ক'],
+  ['ভেক্টর','স্কেলার ও ভেক্টর রাশি|ভেক্টরের যোগ ও বিয়োগ|ভেক্টরের বিভাজন|ডট গুণন|ক্রস গুণন|ভেক্টর ক্যালকুলাস'],
+  ['গতিবিদ্যা','দ্রুতি, বেগ ও ত্বরণ|সমত্বরণের সমীকরণ|প্রাস গতি|আপেক্ষিক বেগ|বৃত্তাকার গতি|কেন্দ্রমুখী বল'],
+  ['নিউটনীয় বলবিদ্যা','নিউটনের গতিসূত্র|ভরবেগ ও এর সংরক্ষণ|বলের ঘাত|ঘর্ষণ|জড়তার ভ্রামক|টর্ক ও কৌণিক ভরবেগ'],
+  ['কাজ, শক্তি ও ক্ষমতা','কাজ ও কাজ-শক্তি উপপাদ্য|গতিশক্তি ও বিভব শক্তি|শক্তির সংরক্ষণ|ক্ষমতা|সংঘর্ষ'],
+  ['মহাকর্ষ ও অভিকর্ষ','নিউটনের মহাকর্ষ সূত্র|অভিকর্ষ ত্বরণ ও এর তারতম্য|মহাকর্ষীয় ক্ষেত্র ও বিভব|মুক্তিবেগ|কৃত্রিম উপগ্রহ ও কেপলারের সূত্র'],
+  ['পদার্থের গাঠনিক ধর্ম','আন্তঃআণবিক বল|পীড়ন, বিকৃতি ও হুকের সূত্র|স্থিতিস্থাপক গুণাঙ্ক|পৃষ্ঠটান|সান্দ্রতা ও প্রবাহ'],
+  ['পর্যাবৃত্ত গতি','সরল ছন্দিত স্পন্দন (SHM)|SHM-এর সমীকরণ ও শক্তি|সরল দোলক|স্প্রিং-ভর সংস্থা|অবমন্দিত ও অনুনাদ স্পন্দন'],
+  ['তরঙ্গ','তরঙ্গের শ্রেণিবিভাগ|ভ্রামী তরঙ্গ|ব্যতিচার ও স্থির তরঙ্গ|শব্দের বেগ|বীট ও ডপলার ক্রিয়া|সুর ও শব্দের তীব্রতা'],
+  ['আদর্শ গ্যাস ও গ্যাসের গতিতত্ত্ব','বয়েল ও চার্লসের সূত্র|আদর্শ গ্যাস সমীকরণ|গ্যাসের গতিতত্ত্ব|গড় মুক্ত পথ|গতিশক্তি ও তাপমাত্রা']
+ ]},
+ {id:'phy2',name:'২য় পত্র',ch:[
+  ['তাপগতিবিদ্যা','তাপমাত্রা ও তাপ|শূন্যতম ও প্রথম সূত্র|দ্বিতীয় সূত্র|কার্নো ইঞ্জিন ও দক্ষতা|এনট্রপি|রুদ্ধতাপীয় ও সমোষ্ণ প্রক্রিয়া'],
+  ['স্থির তড়িৎ','কুলম্বের সূত্র|তড়িৎ ক্ষেত্র ও প্রাবল্য|গাউসের সূত্র|তড়িৎ বিভব|ধারক ও ধারকত্ব|ডাইইলেকট্রিক'],
+  ['চল তড়িৎ','তড়িৎ প্রবাহ ও রোধ|ওহমের সূত্র|কির্শফের সূত্র|হুইটস্টোন ব্রিজ|মিটার ব্রিজ ও পোটেনশিওমিটার|তড়িৎ শক্তি ও ক্ষমতা'],
+  ['তড়িৎ প্রবাহের চৌম্বক ক্রিয়া ও চুম্বকত্ব','বায়ো-সাভার্ট সূত্র|অ্যাম্পিয়ারের সূত্র|চৌম্বক ক্ষেত্রে গতিশীল আধান|তারের উপর চৌম্বক বল|গ্যালভানোমিটার|পদার্থের চৌম্বক ধর্ম'],
+  ['তাড়িতচৌম্বক আবেশ ও পরিবর্তী প্রবাহ','ফ্যারাডে ও লেঞ্জের সূত্র|স্বকীয় ও পারস্পরিক আবেশ|জেনারেটর ও মোটর|ট্রান্সফর্মার|পরিবর্তী প্রবাহের RMS মান|LCR বর্তনী ও অনুনাদ'],
+  ['জ্যামিতিক আলোকবিজ্ঞান','প্রতিফলন ও প্রতিসরণ|পূর্ণ অভ্যন্তরীণ প্রতিফলন|গোলীয় তল ও লেন্স|লেন্সের সূত্র ও ক্ষমতা|প্রিজম|অণুবীক্ষণ ও দূরবীক্ষণ যন্ত্র'],
+  ['ভৌত আলোকবিজ্ঞান','আলোর তরঙ্গতত্ত্ব|ব্যতিচার ও ইয়ংয়ের পরীক্ষা|ব্যবর্তন|সমবর্তন'],
+  ['আধুনিক পদার্থবিজ্ঞানের সূচনা','আপেক্ষিকতার বিশেষ তত্ত্ব|কৃষ্ণ বস্তুর বিকিরণ ও প্ল্যাঙ্কের তত্ত্ব|আলোক তড়িৎ ক্রিয়া|কম্পটন ক্রিয়া|দ্য ব্রগলির তরঙ্গ'],
+  ['পরমাণুর মডেল ও নিউক্লিয়ার পদার্থবিজ্ঞান','রাদারফোর্ড ও বোর মডেল|বর্ণালী|তেজস্ক্রিয়তা|নিউক্লিয়ার বিক্রিয়া|বন্ধন শক্তি|মৌলিক কণা'],
+  ['সেমিকন্ডাক্টর ও ইলেকট্রনিক্স','শক্তি ব্যান্ড তত্ত্ব|p-n জংশন ডায়োড|ট্রানজিস্টর|লজিক গেইট|অপারেশনাল অ্যামপ্লিফায়ার'],
+  ['জ্যোতির্বিজ্ঞান','মহাবিশ্ব ও ছায়াপথ|নক্ষত্রের শ্রেণিবিভাগ ও বিবর্তন|সূর্য ও সৌরজগৎ|কৃষ্ণগহ্বর|মহাবিশ্বের উৎপত্তি']
+ ]}
+]},
+{id:'math',name:'উচ্চতর গণিত',short:'গণিত',papers:[
+ {id:'math1',name:'১ম পত্র',ch:[
+  ['ম্যাট্রিক্স ও নির্ণায়ক','ম্যাট্রিক্সের প্রকারভেদ ও বীজগণিত|নির্ণায়ক ও এর ধর্ম|বিপরীত ম্যাট্রিক্স|সমীকরণ জোটের সমাধান'],
+  ['ভেক্টর','ভেক্টরের যোগ, বিয়োগ ও গুণন|স্কেলার ও ভেক্টর গুণফল|দিক কোসাইন|জ্যামিতিক প্রমাণে ভেক্টর'],
+  ['সরলরেখা','সরলরেখার সমীকরণ|দুই রেখার মধ্যবর্তী কোণ|বিন্দু থেকে রেখার দূরত্ব|রেখার ঢাল'],
+  ['বৃত্ত','বৃত্তের সমীকরণ|স্পর্শক ও অভিলম্ব|বৃত্ত ও রেখার ছেদ|দুই বৃত্তের পারস্পরিক অবস্থান'],
+  ['বিন্যাস ও সমাবেশ','বিন্যাস|সমাবেশ|বিন্যাস ও সমাবেশের সম্পর্ক|শর্তসাপেক্ষ গণনা'],
+  ['ত্রিকোণমিতিক অনুপাত','ত্রিকোণমিতিক অনুপাতের সূত্র|যেকোনো কোণের অনুপাত|ত্রিকোণমিতিক অভেদ'],
+  ['সংযুক্ত ও যৌগিক কোণের ত্রিকোণমিতিক অনুপাত','সংযুক্ত কোণের সূত্র|যৌগিক কোণের সূত্র|গুণিতক ও উপগুণিতক কোণ|ত্রিকোণমিতিক রূপান্তর'],
+  ['ফাংশন ও ফাংশনের লেখচিত্র','ফাংশনের সংজ্ঞা, ডোমেন ও রেঞ্জ|ফাংশনের প্রকারভেদ|বিপরীত ফাংশন|লেখচিত্র অঙ্কন'],
+  ['অন্তরীকরণ','ফাংশনের সীমা|অন্তরজের ধারণা|মৌলিক সূত্র ও চেইন রুল|সর্বোচ্চ ও সর্বনিম্ন মান|স্পর্শক ও অভিলম্ব'],
+  ['যোগজীকরণ','যোগজের মৌলিক সূত্র|প্রতিস্থাপন পদ্ধতি|আংশিক ভগ্নাংশ|খণ্ডায়ন (by parts)|নির্দিষ্ট যোগজ ও ক্ষেত্রফল']
+ ]},
+ {id:'math2',name:'২য় পত্র',ch:[
+  ['বাস্তব সংখ্যা ও অসমতা','বাস্তব সংখ্যার ধর্ম|অসমতা|পরম মান|অসমতার লেখচিত্র'],
+  ['যোগাশ্রয়ী প্রোগ্রাম','যোগাশ্রয়ী সমীকরণ ও অসমতা|সম্ভাব্য এলাকা|সর্বোচ্চ ও সর্বনিম্ন মান নির্ণয়|সমস্যা গঠন'],
+  ['জটিল সংখ্যা','জটিল সংখ্যার সংজ্ঞা ও বীজগণিত|কনজুগেট ও মডুলাস|আর্গুমেন্ট ও পোলার রূপ|বর্গমূল ও ঘনমূল|ইউনিটির ঘনমূল ω'],
+  ['বহুপদী ও বহুপদী সমীকরণ','বহুপদীর ঘাত ও মূল|ভাগশেষ উপপাদ্য|মূল ও সহগের সম্পর্ক|মূলের ধর্ম'],
+  ['দ্বিপদী বিস্তৃতি','দ্বিপদী উপপাদ্য|সাধারণ পদ|মধ্যপদ|বিস্তৃতির ব্যবহার'],
+  ['কণিক','অধিবৃত্ত|উপবৃত্ত|পরাবৃত্ত|কণিকের স্পর্শক ও অভিলম্ব'],
+  ['বিপরীত ত্রিকোণমিতিক ফাংশন ও ত্রিকোণমিতিক সমীকরণ','বিপরীত ত্রিকোণমিতিক ফাংশন|সূত্র ও রূপান্তর|সাধারণ সমাধান|ত্রিকোণমিতিক সমীকরণ সমাধান'],
+  ['স্থিতিবিদ্যা','বলের লব্ধি ও বিভাজন|ভারসাম্য ও লামির উপপাদ্য|সমান্তরাল বল ও ভ্রামক|ঘর্ষণ|ভারকেন্দ্র'],
+  ['সমতলে বস্তুকণার গতি','সরলরেখায় গতি|প্রাস গতি|বৃত্তাকার গতি|সরল ছন্দিত গতি|কাজ, শক্তি ও ক্ষমতা'],
+  ['বিস্তার পরিমাপ ও সম্ভাবনা','কেন্দ্রীয় প্রবণতা|বিস্তার পরিমাপ|সম্ভাবনা|শর্তাধীন সম্ভাবনা|বেইজ উপপাদ্য']
+ ]}
+]},
+{id:'bio',name:'জীববিজ্ঞান',short:'জীব',papers:[
+ {id:'bio1',name:'১ম পত্র',ch:[
+  ['কোষ ও এর গঠন','কোষ ও কোষ তত্ত্ব|কোষপ্রাচীর ও প্লাজমা ঝিল্লি|সাইটোপ্লাজম ও অঙ্গাণু|নিউক্লিয়াস ও ক্রোমোজোম|আণুবীক্ষণিক পর্যবেক্ষণ'],
+  ['কোষ বিভাজন','কোষচক্র|মাইটোসিস|মিয়োসিস|ক্রসিং ওভার'],
+  ['কোষ রসায়ন','পানি ও খনিজ|কার্বোহাইড্রেট|লিপিড|প্রোটিন|এনজাইম|নিউক্লিক অ্যাসিড|ভিটামিন'],
+  ['অণুজীব','ভাইরাস|ব্যাকটেরিয়া|মাইকোপ্লাজমা ও রিকেটশিয়া|অণুজীবের উপকারিতা ও ক্ষতি|রোগজীবাণু ও নিয়ন্ত্রণ'],
+  ['শৈবাল ও ছত্রাক','শৈবালের সাধারণ বৈশিষ্ট্য|স্পাইরোগাইরা|ছত্রাকের সাধারণ বৈশিষ্ট্য|মিউকর ও ইস্ট|লাইকেন ও মাইকোরাইজা'],
+  ['ব্রায়োফাইটা ও টেরিডোফাইটা','ব্রায়োফাইটার বৈশিষ্ট্য|মার্কেনশিয়া|টেরিডোফাইটার বৈশিষ্ট্য|ফার্ন|জীবনচক্র'],
+  ['নগ্নবীজী ও আবৃতবীজী উদ্ভিদ','নগ্নবীজী উদ্ভিদ|আবৃতবীজী উদ্ভিদের বৈশিষ্ট্য|একবীজপত্রী ও দ্বিবীজপত্রী|ফুল, ফল ও বীজ'],
+  ['টিস্যু ও টিস্যুতন্ত্র','মেরিস্টেম|স্থায়ী টিস্যু|টিস্যুতন্ত্র|দ্বিতীয় বৃদ্ধি|কাণ্ড ও মূলের অন্তর্গঠন'],
+  ['উদ্ভিদ শারীরতত্ত্ব','সালোকসংশ্লেষণ|শ্বসন|প্রস্বেদন ও পানি শোষণ|খনিজ লবণ শোষণ|খাদ্য পরিবহন|বৃদ্ধি ও হরমোন'],
+  ['উদ্ভিদ প্রজনন','অযৌন ও যৌন প্রজনন|পরাগায়ন|নিষেক ও বীজ গঠন|বীজের অঙ্কুরোদগম|জনুক্রম'],
+  ['জীবপ্রযুক্তি','জীবপ্রযুক্তির ধারণা|টিস্যু কালচার|জিন প্রকৌশল|ডিএনএ প্রযুক্তি ও প্রয়োগ|জিএম জীব'],
+  ['জীবের পরিবেশ, বিস্তার ও সংরক্ষণ','বাস্তুসংস্থান|বাস্তুতন্ত্রের উপাদান|খাদ্যশৃঙ্খল ও খাদ্যজাল|জীববৈচিত্র্য|সংরক্ষণ ও বিপন্ন প্রজাতি']
+ ]},
+ {id:'bio2',name:'২য় পত্র',ch:[
+  ['প্রাণীর বিভিন্নতা ও শ্রেণিবিন্যাস','শ্রেণিবিন্যাসের নীতি|প্রোটোজোয়া ও পরিফেরা|নিডারিয়া|প্লাটিহেলমিনথিস ও নেমাটোডা|অ্যানিলিডা|মোলাস্কা ও আর্থ্রোপোডা|একাইনোডার্মাটা ও কর্ডাটা'],
+  ['প্রাণীর পরিচিতি','হাইড্রা|কেঁচো|ঘাসফড়িং|রুই মাছ|ব্যাঙ'],
+  ['পরিপাক ও শোষণ','খাদ্য উপাদান|পরিপাকতন্ত্র|পরিপাক এনজাইম|শোষণ ও সঞ্চয়|পুষ্টি ও অপুষ্টি'],
+  ['রক্ত ও সংবহন','রক্তের উপাদান|রক্তকণিকা|রক্তের গ্রুপ|হৃৎপিণ্ড ও হৃদচক্র|রক্তচাপ ও ECG'],
+  ['গ্যাসীয় বিনিময়','শ্বসনতন্ত্র|ফুসফুস ও শ্বাস-প্রশ্বাস|গ্যাসের পরিবহন|শ্বসনতন্ত্রের রোগ'],
+  ['রেচন প্রক্রিয়া','রেচনতন্ত্র|বৃক্ক ও নেফ্রন|মূত্র তৈরি|ডায়ালাইসিস ও কিডনি রোগ'],
+  ['চলন ও অঙ্গচালনা','কঙ্কালতন্ত্র|অস্থি ও তরুণাস্থি|সন্ধি|পেশি ও পেশি সংকোচন|হাড় ও সন্ধির রোগ'],
+  ['সমন্বয় ও নিয়ন্ত্রণ','স্নায়ুতন্ত্র|মস্তিষ্ক ও সুষুম্নাকাণ্ড|চোখ ও কান|হরমোন ও অন্তঃক্ষরা গ্রন্থি|প্রতিবর্ত ক্রিয়া'],
+  ['মানব জীবনের ধারাবাহিকতা','প্রজননতন্ত্র|গ্যামেটোজেনেসিস|নিষেক ও ভ্রূণ বিকাশ|গর্ভাবস্থা ও প্রসব|জন্মনিয়ন্ত্রণ'],
+  ['মানবদেহের প্রতিরক্ষা','রোগ প্রতিরোধ|অনাক্রম্যতা|টিকা ও অ্যান্টিবডি|এইডস|অ্যালার্জি'],
+  ['জীবের বংশগতি ও বিবর্তন','মেন্ডেলের সূত্র|ক্রোমোজোম ও বংশগতি|লিঙ্গ নির্ধারণ|বংশগত রোগ|বিবর্তনের মতবাদ'],
+  ['প্রাণীর আচরণ','সহজাত ও অর্জিত আচরণ|প্রতিবর্ত ও শিক্ষণ|সামাজিক আচরণ|প্রাণীর যোগাযোগ']
+ ]}
+]},
+{id:'chem',name:'রসায়ন',short:'রসায়ন',papers:[
+ {id:'chem1',name:'১ম পত্র',ch:[
+  ['ল্যাবরেটরির নিরাপদ ব্যবহার','ল্যাবরেটরির নিয়মাবলি|রাসায়নিক দ্রব্যের নিরাপদ ব্যবহার|প্রাথমিক চিকিৎসা|ল্যাবরেটরির যন্ত্রপাতি'],
+  ['গুণগত রসায়ন','পরমাণুর গঠন ও মডেল|বোর মডেল|কোয়ান্টাম সংখ্যা|ইলেকট্রন বিন্যাস|নিউক্লিয়ার রসায়ন'],
+  ['মৌলের পর্যায়বৃত্ত ধর্ম ও রাসায়নিক বন্ধন','পর্যায় সারণি|আয়নিকরণ শক্তি ও তড়িৎ ঋণাত্মকতা|পারমাণবিক ব্যাসার্ধ|আয়নিক ও সমযোজী বন্ধন|অরবিটাল সংকরণ ও আণবিক জ্যামিতি|ধাতব ও হাইড্রোজেন বন্ধন'],
+  ['রাসায়নিক পরিবর্তন','তাপ রসায়ন ও এনথালপি|রাসায়নিক সাম্যাবস্থা|লা শাটেলিয়ারের নীতি|বিক্রিয়ার হার|অম্ল-ক্ষারক ও pH|বাফার দ্রবণ'],
+  ['কর্মমুখী রসায়ন','পানি ও পানি বিশুদ্ধকরণ|সাবান ও ডিটারজেন্ট|খাদ্য সংরক্ষণ|সার ও কীটনাশক|ঔষধ ও প্রসাধনী']
+ ]},
+ {id:'chem2',name:'২য় পত্র',ch:[
+  ['পরিবেশ রসায়ন','পরিবেশ দূষণ|বায়ু ও পানি দূষণ|অ্যাসিড বৃষ্টি ও গ্রিনহাউস প্রভাব|ওজোন স্তর|বর্জ্য ব্যবস্থাপনা'],
+  ['জৈব রসায়ন','হাইড্রোকার্বন|অ্যারোমেটিক যৌগ ও বেনজিন|অ্যালকোহল ও ইথার|অ্যালডিহাইড ও কিটোন|কার্বক্সিলিক এসিড ও এস্টার|অ্যামিন ও আইসোমারিজম'],
+  ['পরিমাণগত রসায়ন','মোল ও আণবিক সংখ্যা|দ্রবণের ঘনমাত্রা|টাইট্রেশন|রাসায়নিক বিক্রিয়ার গণনা'],
+  ['তড়িৎ রসায়ন','তড়িৎ বিশ্লেষণ ও ফ্যারাডের সূত্র|গ্যালভানিক কোষ|তড়িৎদ্বার বিভব|ব্যাটারি ও জ্বালানি কোষ|ক্ষয় ও সুরক্ষা'],
+  ['অর্থনৈতিক রসায়ন','খনিজ সম্পদ ও আকরিক|রাসায়নিক শিল্প|ধাতু নিষ্কাশন|কাচ ও সিমেন্ট|পেট্রোরসায়ন']
+ ]}
+]},
+{id:'ict',name:'আইসিটি',short:'আইসিটি',papers:[
+ {id:'ict1',name:'একটি পত্র',ch:[
+  ['তথ্য ও যোগাযোগ প্রযুক্তি: বিশ্ব ও বাংলাদেশ প্রেক্ষিত','তথ্য ও যোগাযোগ প্রযুক্তির ধারণা|বিশ্বগ্রাম|কৃত্রিম বুদ্ধিমত্তা ও রোবটিক্স|ভার্চুয়াল রিয়েলিটি|ক্রায়োসার্জারি ও বায়োমেট্রিক্স|ন্যানোটেকনোলজি'],
+  ['কমিউনিকেশন সিস্টেমস ও কম্পিউটার নেটওয়ার্কিং','ডেটা কমিউনিকেশন|ডেটা ট্রান্সমিশন মোড|ব্যান্ডউইথ|নেটওয়ার্ক টপোলজি|ক্লাউড কম্পিউটিং|ওয়্যারলেস ও মোবাইল যোগাযোগ'],
+  ['সংখ্যা পদ্ধতি ও ডিজিটাল ডিভাইস','সংখ্যা পদ্ধতি ও রূপান্তর|বাইনারি যোগ-বিয়োগ|২-এর পরিপূরক|কোড (ASCII, BCD, ইউনিকোড)|বুলিয়ান অ্যালজেবরা|লজিক গেট|এনকোডার, ডিকোডার ও ফ্লিপ-ফ্লপ'],
+  ['ওয়েব ডিজাইন পরিচিতি ও এইচটিএমএল','ওয়েব পেজ ও ওয়েবসাইট|ইন্টারনেট ও ওয়েব|HTML ট্যাগ|টেবিল ও লিস্ট|লিংক ও ইমেজ|ফর্ম'],
+  ['প্রোগ্রামিং ভাষা','প্রোগ্রামিং ভাষার প্রজন্ম|অ্যালগরিদম ও ফ্লোচার্ট|C ভাষার মৌলিক ধারণা|ভেরিয়েবল ও ডেটা টাইপ|কন্ডিশন ও লুপ|অ্যারে ও ফাংশন'],
+  ['ডেটাবেজ ম্যানেজমেন্ট সিস্টেম','ডেটাবেজের ধারণা|DBMS|টেবিল, ফিল্ড ও রেকর্ড|কুয়েরি, ফর্ম ও রিপোর্ট|ডেটার নিরাপত্তা']
+ ]}
+]}
+];
+
+
+var KEY='studyTracker.v1', TKEY='studyTracker.theme';
+function pad(n){return (n<10?'0':'')+n}
+function dkey(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function normalize(o){
+  var list;
+  if(Array.isArray(o.examList)){list=o.examList.filter(function(x){return x&&x.id&&typeof x.n==='string'})}
+  else{list=[{id:'hsc',n:'HSC Exam',d:(o.exams&&typeof o.exams.hsc==='string')?o.exams.hsc:''}]}
+  var tm=o.timer;
+  if(!(tm&&typeof tm==='object'&&typeof tm.ck==='string'))tm=null;
+  return {
+    done:o.done||{},notes:o.notes||{},custom:o.custom||{},examList:list,
+    name:typeof o.name==='string'?o.name:'',
+    log:(o.log&&typeof o.log==='object')?o.log:{},
+    goalMin:(+o.goalMin>0)?+o.goalMin:120,
+    tasks:Array.isArray(o.tasks)?o.tasks.filter(function(x){return x&&x.id&&typeof x.t==='string'&&typeof x.date==='string'}):[],
+    timer:tm
+  };
+}
+var S=normalize({});
+try{var raw=localStorage.getItem(KEY);if(raw){var o=JSON.parse(raw);if(o&&typeof o==='object'){S=normalize(o)}}}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+
+var bn=function(n){return String(n).replace(/\d/g,function(d){return '০১২৩৪৫৬৭৮৯'[d]})};
+var esc=function(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
+var C=2*Math.PI*52;
+
+var PAPERS=[];
+var EN={phy:'Physics',math:'Higher Math',bio:'Biology',chem:'Chemistry',ict:'ICT'};
+var TILE={phy:'Ph',math:'Hm',bio:'Bi',chem:'Ch',ict:'IC'};
+DATA.forEach(function(s){s.papers.forEach(function(p,i){p.sid=s.id;p.sname=s.name;p.sshort=s.short;p.en=EN[s.id]+(s.papers.length>1?(i?' 2nd Paper':' 1st Paper'):'');PAPERS.push(p)})});
+function byId(a,id){for(var i=0;i<a.length;i++)if(a[i].id===id)return a[i]}
+
+function topics(p,ci){
+  var base=p.ch[ci][1].split('|').map(function(t,i){return {id:p.id+'.'+ci+'.'+i,t:t}});
+  var cu=(S.custom[p.id+'.'+ci]||[]).map(function(x){return {id:x.id,t:x.t,custom:true}});
+  return base.concat(cu);
+}
+function add(a,b){return {d:a.d+b.d,t:a.t+b.t}}
+function chStat(p,ci){var t=topics(p,ci);return {d:t.filter(function(x){return S.done[x.id]}).length,t:t.length}}
+function pStat(p){var r={d:0,t:0};p.ch.forEach(function(_,ci){r=add(r,chStat(p,ci))});return r}
+function sStat(s){var r={d:0,t:0};s.papers.forEach(function(p){r=add(r,pStat(p))});return r}
+function allStat(){var r={d:0,t:0};DATA.forEach(function(s){r=add(r,sStat(s))});return r}
+function pct(st){return st.t?Math.floor(st.d*100/st.t):0}
+function ratio(st){return st.t?st.d*100/st.t:0}
+function statFor(k){
+  var a=k.split(':');
+  if(a[0]==='all')return allStat();
+  if(a[0]==='s')return sStat(byId(DATA,a[1]));
+  var p=byId(PAPERS,a[1]);
+  if(a[0]==='p')return pStat(p);
+  return chStat(p,+a[2]);
+}
+function chapStat(k){
+  var a=k.split(':'),ps;
+  if(a[0]==='all')ps=PAPERS;
+  else if(a[0]==='s')ps=byId(DATA,a[1]).papers;
+  else ps=[byId(PAPERS,a[1])];
+  var d=0,t=0;
+  ps.forEach(function(p){p.ch.forEach(function(_,ci){var s=chStat(p,ci);t++;if(s.t>0&&s.d===s.t)d++})});
+  return {d:d,t:t};
+}
+function updateStats(){
+  document.querySelectorAll('[data-k]').forEach(function(el){
+    var st=statFor(el.dataset.k),pc=pct(st),v=el.dataset.v,f=el.dataset.en?String:bn;
+    if(v==='pct')el.textContent=f(pc)+'%';
+    else if(v==='pct1')el.textContent=ratio(st).toFixed(1)+'%';
+    else if(v==='cnt')el.textContent=f(st.d)+'/'+f(st.t);
+    else if(v==='bar')el.style.width=ratio(st)+'%';
+    else if(v==='ring')el.style.strokeDashoffset=String((1-ratio(st)/100)*C);
+    else if(v==='chcnt'){var c=chapStat(el.dataset.k);el.textContent=c.d+'/'+c.t+' chapters'}
+    else if(v==='chof'){var c2=chapStat(el.dataset.k);el.textContent=c2.d+' of '+c2.t+' chapters completed'}
+  });
+}
+
+/* time helpers */
+function elapsed(){
+  var t=S.timer;if(!t)return 0;
+  return Math.floor((+t.acc||0)+(+t.startedAt?(Date.now()-(+t.startedAt))/1000:0));
+}
+function todaySec(){return (S.log[dkey(new Date())]||0)+elapsed()}
+function fmt(sec){
+  sec=Math.max(0,Math.floor(sec));
+  var h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=sec%60;
+  if(h>0)return h+'h '+pad(m)+'m';
+  if(m>0)return m+'m '+pad(s)+'s';
+  return s+'s';
+}
+function clock(sec){sec=Math.max(0,Math.floor(sec));return pad(Math.floor(sec/3600))+':'+pad(Math.floor(sec%3600/60))+':'+pad(sec%60)}
+function streak(){
+  var n=0,d=new Date();
+  if(todaySec()>0)n=1;
+  d.setDate(d.getDate()-1);
+  while((S.log[dkey(d)]||0)>0){n++;d.setDate(d.getDate()-1)}
+  return n;
+}
+function left(v){
+  if(!v)return 'Set a date';
+  var d=new Date(v+'T00:00:00'),t=new Date();t.setHours(0,0,0,0);
+  var n=Math.round((d-t)/864e5);
+  if(n>1)return n+' days left';
+  if(n===1)return '1 day left';
+  if(n===0)return 'Exam today';
+  return 'Finished';
+}
+function upcoming(){
+  var t=dkey(new Date());
+  var c=S.examList.filter(function(x){return x.d&&x.d>=t}).sort(function(a,b){return a.d<b.d?-1:a.d>b.d?1:0});
+  return c[0]||null;
+}
+function nextChapter(){
+  var first=null,prog=null;
+  PAPERS.forEach(function(p){p.ch.forEach(function(c,ci){
+    var s=chStat(p,ci);
+    if(!s.t||s.d===s.t)return;
+    var o={p:p,ci:ci,ck:p.id+'.'+ci,title:c[0]};
+    if(!prog&&s.d>0)prog=o;
+    if(!first)first=o;
+  })});
+  return prog||first;
+}
+function achievement(){
+  var st=allStat(),cs=chapStat('all'),pc=ratio(st);
+  if(st.d===0)return ["Let's begin","Tick your first topic and your journey starts."];
+  if(pc>=100)return ['Syllabus complete','You finished every topic. Time to revise.'];
+  if(pc>=75)return ['Almost there','Less than a quarter of the syllabus is left.'];
+  if(pc>=50)return ['Halfway there','Half the syllabus is done. Keep the pace.'];
+  if(pc>=25)return ['Quarter done','A quarter of the syllabus is behind you.'];
+  if(cs.d>=1)return ['Great start!','Every chapter counts. Stay consistent.'];
+  return ['Good start','Topics are adding up. Finish a chapter next.'];
+}
+function week(){
+  var out=[],d=new Date(),tk=dkey(new Date());
+  d.setDate(d.getDate()-6);
+  for(var i=0;i<7;i++){
+    var k=dkey(d),s=S.log[k]||0;
+    if(k===tk)s+=elapsed();
+    out.push({l:d.toLocaleDateString('en-US',{weekday:'short'}),s:s});
+    d.setDate(d.getDate()+1);
+  }
+  return out;
+}
+function tasksToShow(){
+  var t=dkey(new Date());
+  return S.tasks.filter(function(x){return x.date===t||(!x.done&&x.date<t)}).sort(function(a,b){return (a.done?1:0)-(b.done?1:0)});
+}
+function greeting(){var h=new Date().getHours();return h<12?'Good morning':h<17?'Good afternoon':'Good evening'}
+
+var IC={
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  flame:'<path d="M12 3c.5 3.5 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3.2 2-4.2.2 1.7 1 2.7 2 2.7C11 9 11 6 12 3z"/>',
+  target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/>',
+  cal:'<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>',
+  trophy:'<path d="M8 4h8v5a4 4 0 0 1-8 0V4z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M9 20h6"/>'
+};
+function ico(n){return '<span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true">'+IC[n]+'</svg></span>'}
+
+var nav=document.getElementById('nav'),app=document.getElementById('app');
+var cur='dash',curPaper={},openSet={},nameEdit=false;
+
+function renderNav(){
+  var h='<a href="#dash" class="'+(cur==='dash'?'on':'')+'">Dashboard</a>';
+  DATA.forEach(function(s){
+    h+='<a href="#'+s.id+'" class="'+(cur===s.id?'on':'')+'">'+s.short+' <small data-k="s:'+s.id+'" data-v="pct"></small></a>';
+  });
+  nav.innerHTML=h;
+}
+
+function renderDash(){
+  var h='',today=new Date(),up=upcoming(),nx=nextChapter(),ac=achievement(),tm=S.timer;
+  var dateTxt=today.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+
+  /* header */
+  h+='<div class="dhead"><div><h1>'+greeting()+(S.name?', '+esc(S.name):'')+'</h1><p>Keep going! Your hard work will pay off.</p>';
+  if(nameEdit){
+    h+='<div class="nameedit"><input type="text" id="nm" data-act="nmin" maxlength="30" placeholder="Your name" aria-label="Your name" value="'+esc(S.name)+'"><button class="btn pri" type="button" data-act="namesave">Save</button></div>';
+  }else{
+    h+='<button class="btn" type="button" data-act="nameedit">'+(S.name?'Change name':'Set your name')+'</button>';
+  }
+  h+='</div><span class="pill">'+dateTxt+'</span></div>';
+
+  /* stat cards */
+  h+='<div class="stats">';
+  h+='<section class="card stat overall"><div class="ring"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="trk" cx="60" cy="60" r="52"/><circle class="arc" data-k="all" data-v="ring" data-en="1" cx="60" cy="60" r="52" stroke-dasharray="'+C+'" stroke-dashoffset="'+C+'"/></svg><div class="txt"><b data-k="all" data-v="pct1" data-en="1"></b></div></div>';
+  h+='<div class="ov"><div class="nm">Overall Progress</div><div class="cap sub" data-k="all" data-v="chof" data-en="1"></div><span class="bar"><i data-k="all" data-v="bar"></i></span></div></section>';
+  h+='<section class="card stat">'+ico('clock')+'<span class="lbl">Study time</span><span class="val" id="st-today">0s</span><span class="cap">Today</span></section>';
+  h+='<section class="card stat">'+ico('flame')+'<span class="lbl">Study streak</span><span class="val" id="st-streak">0 days</span><span class="cap">Keep it going</span></section>';
+  h+='<section class="card stat">'+ico('target')+'<span class="lbl">Today\'s goal</span><span class="val" id="st-goal">0.0%</span><span class="cap">Target <input class="goalin" type="number" min="1" max="1440" id="goal" data-act="goal" value="'+S.goalMin+'" aria-label="Daily target in minutes"> min</span></section>';
+  h+='<section class="card stat">'+ico('cal')+'<span class="lbl">Upcoming exam</span><span class="val sm">'+(up?esc(up.n):'—')+'</span><span class="cap">'+(up?left(up.d):'None scheduled')+'</span></section>';
+  h+='</div>';
+
+  /* two columns */
+  h+='<div class="dgrid"><div class="col">';
+  h+='<section class="card"><div class="chead"><h2>Subject progress</h2></div>';
+  PAPERS.forEach(function(p){
+    h+='<a class="prow" href="#'+p.sid+'"><span class="tile">'+TILE[p.sid]+'</span><span class="nm">'+p.en+'</span><span class="ct" data-k="p:'+p.id+'" data-v="chcnt"></span><span class="pc" data-k="p:'+p.id+'" data-v="pct1" data-en="1"></span><span class="bar"><i data-k="p:'+p.id+'" data-v="bar"></i></span></a>';
+  });
+  h+='</section>';
+  var wk=week(),mx=Math.max.apply(null,wk.map(function(x){return x.s}).concat([1])),tot=0;
+  wk.forEach(function(x){tot+=x.s});
+  h+='<section class="card"><div class="chead"><h2>Last 7 days</h2><span class="sub">Total '+fmt(tot)+'</span></div><div class="wk">';
+  wk.forEach(function(x){
+    h+='<div class="c" title="'+x.l+': '+fmt(x.s)+'"><i style="height:'+(Math.round(x.s/mx*90)+4)+'px"></i><span>'+x.l+'</span></div>';
+  });
+  h+='</div></section>';
+  h+='</div><div class="col">';
+
+  /* continue studying */
+  h+='<section class="card cont"><div class="eyebrow">Continue studying · next uncompleted</div>';
+  if(nx){
+    h+='<h2>'+esc(nx.title)+'</h2><p class="sub">'+nx.p.en+' · Chapter '+(nx.ci+1)+'</p><span class="bar"><i data-k="c:'+nx.p.id+':'+nx.ci+'" data-v="bar"></i></span>';
+  }else{
+    h+='<h2>All chapters done</h2><p class="sub">Nothing left to study. Time to revise.</p>';
+  }
+  if(tm){
+    var running=!!(+tm.startedAt);
+    var tp=chapterOf(tm.ck);
+    h+='<div class="timer"><div><small>Studying: '+esc(tp.p.ch[tp.ci][0])+'</small><b id="tm">'+clock(elapsed())+'</b></div><div class="tbtns">';
+    h+='<button class="btn" type="button" data-act="'+(running?'tpause':'tresume')+'">'+(running?'Pause':'Resume')+'</button>';
+    h+='<button class="btn pri" type="button" data-act="tstop">Stop &amp; save</button></div></div>';
+  }else if(nx){
+    h+='<div class="btns"><button class="btn pri big" type="button" data-act="start" data-ck="'+nx.ck+'">Start studying</button><button class="btn" type="button" data-act="goto" data-ck="'+nx.ck+'">View</button></div>';
+  }
+  h+='</section>';
+
+  /* today's plan */
+  h+='<section class="card"><div class="chead"><h2>Today\'s plan</h2></div>';
+  var ts=tasksToShow(),td=dkey(new Date());
+  if(ts.length){
+    h+='<ul class="tl2">';
+    ts.forEach(function(x){
+      h+='<li><label><input type="checkbox" data-act="tktick" data-id="'+esc(x.id)+'"'+(x.done?' checked':'')+'><span>'+esc(x.t)+(x.date<td&&!x.done?'<em class="tag">Overdue</em>':'')+'</span></label><button class="x" type="button" data-act="deltk" data-id="'+esc(x.id)+'" aria-label="Delete task">×</button></li>';
+    });
+    h+='</ul>';
+  }else{
+    h+='<p class="empty">No tasks for today. Add one below.</p>';
+  }
+  h+='<div class="addrow"><input type="text" id="tk" data-act="tkin" maxlength="120" placeholder="Add a task for today" aria-label="New task"><button class="btn" type="button" data-act="addtk">Add</button></div></section>';
+
+  /* achievement */
+  h+='<section class="card ach">'+ico('trophy')+'<div><h2>'+ac[0]+'</h2><p class="sub">'+ac[1]+'</p></div></section>';
+  h+='</div></div>';
+
+  /* exams */
+  h+='<section class="card"><div class="chead"><h2>Exam Countdown</h2></div>';
+  var exs=S.examList.slice().sort(function(a,b){if(!a.d&&!b.d)return 0;if(!a.d)return 1;if(!b.d)return -1;return a.d<b.d?-1:a.d>b.d?1:0});
+  exs.forEach(function(x){
+    h+='<div class="erow"><span class="lb">'+esc(x.n)+'<button class="x" type="button" data-act="delex" data-id="'+esc(x.id)+'" aria-label="Delete exam">×</button></span><input type="date" id="ex-'+esc(x.id)+'" data-act="exam" data-key="'+esc(x.id)+'" value="'+esc(x.d||'')+'" aria-label="Date for '+esc(x.n)+'"><span class="lf" id="lf-'+esc(x.id)+'">'+left(x.d)+'</span></div>';
+  });
+  if(!exs.length)h+='<p class="sub">No exams added yet.</p>';
+  h+='<div class="addrow exadd"><input type="text" id="exn" data-act="exin" placeholder="Exam name, e.g. Model Test" aria-label="Exam name"><input type="date" id="exd" aria-label="Exam date"><button class="btn pri" type="button" data-act="addex">Add exam</button></div>';
+  h+='</section>';
+
+  /* backup */
+  h+='<details class="card bk"><summary>Backup &amp; Restore</summary><p class="sub" style="margin:8px 0">Your data is stored only in this browser. If you clear browser data it is lost, so copy a backup now and then and keep it somewhere safe.</p>';
+  h+='<div class="acts"><button class="btn pri" type="button" data-act="backup">Copy backup</button><button class="btn" type="button" data-act="restore">Restore</button></div>';
+  h+='<label class="nl" for="bk">To restore, paste an earlier backup here and press Restore</label><textarea id="bk" spellcheck="false"></textarea><div class="msg" id="bkmsg" role="status"></div></details>';
+  app.innerHTML=h;
+}
+
+function renderSubject(s){
+  var pid=curPaper[s.id]||s.papers[0].id,p=byId(s.papers,pid);
+  var h='<div class="narrow"><div class="subhead"><h1>'+s.name+'</h1><div class="line"><span class="bar"><i data-k="s:'+s.id+'" data-v="bar"></i></span><b data-k="s:'+s.id+'" data-v="pct"></b></div>';
+  if(s.papers.length>1){
+    h+='<div class="tabs" role="tablist">';
+    s.papers.forEach(function(q){
+      h+='<button type="button" role="tab" class="'+(q.id===pid?'on':'')+'" data-act="paper" data-sid="'+s.id+'" data-p="'+q.id+'">'+q.name+'<span data-k="p:'+q.id+'" data-v="pct"></span></button>';
+    });
+    h+='</div>';
+  }
+  h+='</div><div class="rows" style="margin-top:4px">';
+  p.ch.forEach(function(c,ci){
+    var ck=p.id+'.'+ci,k='c:'+p.id+':'+ci;
+    h+='<details class="ch" data-ck="'+ck+'"'+(openSet[ck]?' open':'')+'><summary><span class="no">'+bn(ci+1)+'</span><span class="nm">'+c[0]+'</span><span class="meta"><span data-k="'+k+'" data-v="cnt"></span><b data-k="'+k+'" data-v="pct"></b></span><span class="bar"><i data-k="'+k+'" data-v="bar"></i></span></summary><div class="body"><ul class="tl">';
+    topics(p,ci).forEach(function(t){
+      h+='<li><label><input type="checkbox" data-act="tick" data-id="'+t.id+'"'+(S.done[t.id]?' checked':'')+'><span>'+esc(t.t)+'</span></label>'+(t.custom?'<button class="x" type="button" data-act="del" data-ck="'+ck+'" data-id="'+t.id+'" aria-label="Delete topic">×</button>':'')+'</li>';
+    });
+    h+='</ul><div class="addrow"><input type="text" id="add-'+ck+'" data-act="addin" data-ck="'+ck+'" placeholder="নতুন টপিক যোগ করো" aria-label="নতুন টপিক"><button class="btn" type="button" data-act="add" data-ck="'+ck+'">যোগ</button></div>';
+    h+='<div class="bulk"><button class="btn" type="button" data-act="all" data-ck="'+ck+'">সব টিক</button><button class="btn" type="button" data-act="none" data-ck="'+ck+'">সব খালি</button></div>';
+    h+='<label class="nl" for="note-'+ck+'">এই চ্যাপ্টারের নোট</label><textarea id="note-'+ck+'" data-act="note" data-ck="'+ck+'" placeholder="কী কী কঠিন লেগেছে, কী আবার দেখতে হবে...">'+esc(S.notes[ck]||'')+'</textarea></div></details>';
+  });
+  h+='</div></div>';
+  app.innerHTML=h;
+}
+
+function live(){
+  if(cur!=='dash')return;
+  var a=document.getElementById('st-today');if(!a)return;
+  var sec=todaySec();
+  a.textContent=fmt(sec);
+  var b=document.getElementById('st-streak');
+  if(b){var n=streak();b.textContent=n+(n===1?' day':' days')}
+  var g=document.getElementById('st-goal');
+  if(g)g.textContent=Math.min(100,sec/(S.goalMin*60)*100).toFixed(1)+'%';
+  var t=document.getElementById('tm');
+  if(t)t.textContent=clock(elapsed());
+}
+setInterval(live,1000);
+
+function render(){
+  var s=byId(DATA,cur);
+  renderNav();
+  if(s)renderSubject(s);else renderDash();
+  updateStats();
+  live();
+}
+function route(){
+  var h=location.hash.slice(1);
+  cur=(h&&byId(DATA,h))?h:'dash';
+  render();
+  window.scrollTo(0,0);
+}
+window.addEventListener('hashchange',route);
+
+function chapterOf(ck){var a=ck.split('.');return {p:byId(PAPERS,a[0]),ci:+a[1]}}
+function gotoChapter(ck){
+  var c=chapterOf(ck);
+  curPaper[c.p.sid]=c.p.id;openSet[ck]=true;
+  if(location.hash==='#'+c.p.sid){route()}else{location.hash='#'+c.p.sid}
+  setTimeout(function(){var d=document.querySelector('details[data-ck="'+ck+'"]');if(d&&d.scrollIntoView)d.scrollIntoView({block:'start'})},120);
+}
+
+app.addEventListener('toggle',function(e){
+  var t=e.target;
+  if(t.matches&&t.matches('details.ch'))openSet[t.dataset.ck]=t.open;
+},true);
+
+app.addEventListener('change',function(e){
+  var el=e.target,act=el.dataset.act;
+  if(act==='tick'){
+    if(el.checked)S.done[el.dataset.id]=1;else delete S.done[el.dataset.id];
+    save();updateStats();
+  }else if(act==='exam'){
+    var ex=byId(S.examList,el.dataset.key);
+    if(ex){ex.d=el.value;save()}
+    var lf=document.getElementById('lf-'+el.dataset.key);
+    if(lf)lf.textContent=left(el.value);
+  }else if(act==='tktick'){
+    var tk=byId(S.tasks,el.dataset.id);
+    if(tk){tk.done=el.checked;save();render()}
+  }else if(act==='goal'){
+    var v=Math.max(1,Math.min(1440,Math.floor(+el.value||0)));
+    S.goalMin=v;el.value=v;save();live();
+  }
+});
+app.addEventListener('input',function(e){
+  var el=e.target;
+  if(el.dataset.act==='note'){S.notes[el.dataset.ck]=el.value;save()}
+});
+function addTopic(ck){
+  var inp=document.getElementById('add-'+ck);
+  var v=inp?inp.value.trim():'';
+  if(!v)return;
+  (S.custom[ck]=S.custom[ck]||[]).push({id:'x'+Date.now().toString(36)+Math.floor(Math.random()*1e4),t:v});
+  save();openSet[ck]=true;render();
+  var again=document.getElementById('add-'+ck);if(again)again.focus();
+}
+function addEx(){
+  var n=document.getElementById('exn'),d=document.getElementById('exd');
+  var name=n?n.value.trim():'';
+  if(!name){if(n)n.focus();return}
+  S.examList.push({id:'e'+Date.now().toString(36)+Math.floor(Math.random()*1e4),n:name,d:d?d.value:''});
+  save();render();
+}
+function addTask(){
+  var i=document.getElementById('tk');
+  var v=i?i.value.trim():'';
+  if(!v){if(i)i.focus();return}
+  S.tasks.push({id:'t'+Date.now().toString(36)+Math.floor(Math.random()*1e4),t:v,date:dkey(new Date()),done:false});
+  save();render();
+  var again=document.getElementById('tk');if(again)again.focus();
+}
+function saveName(){
+  var i=document.getElementById('nm');
+  S.name=i?i.value.trim().slice(0,30):S.name;
+  nameEdit=false;save();render();
+}
+app.addEventListener('keydown',function(e){
+  var ds=e.target.dataset||{};
+  if(e.key!=='Enter')return;
+  if(ds.act==='addin'){e.preventDefault();addTopic(ds.ck)}
+  else if(ds.act==='exin'){e.preventDefault();addEx()}
+  else if(ds.act==='tkin'){e.preventDefault();addTask()}
+  else if(ds.act==='nmin'){e.preventDefault();saveName()}
+});
+app.addEventListener('click',function(e){
+  var el=e.target.closest('[data-act]');
+  if(!el)return;
+  var act=el.dataset.act;
+  if(act==='paper'){curPaper[el.dataset.sid]=el.dataset.p;render()}
+  else if(act==='add'){addTopic(el.dataset.ck)}
+  else if(act==='del'){
+    var ck=el.dataset.ck,id=el.dataset.id;
+    S.custom[ck]=(S.custom[ck]||[]).filter(function(x){return x.id!==id});
+    delete S.done[id];save();openSet[ck]=true;render();
+  }else if(act==='all'||act==='none'){
+    var c=chapterOf(el.dataset.ck);
+    topics(c.p,c.ci).forEach(function(t){if(act==='all')S.done[t.id]=1;else delete S.done[t.id]});
+    save();
+    var box=el.closest('details');
+    box.querySelectorAll('input[data-act=tick]').forEach(function(i){i.checked=(act==='all')});
+    updateStats();
+  }else if(act==='addex'){addEx()}
+  else if(act==='delex'){
+    S.examList=S.examList.filter(function(x){return x.id!==el.dataset.id});
+    save();render();
+  }else if(act==='addtk'){addTask()}
+  else if(act==='deltk'){
+    S.tasks=S.tasks.filter(function(x){return x.id!==el.dataset.id});
+    save();render();
+  }else if(act==='nameedit'){
+    nameEdit=true;render();
+    var ni=document.getElementById('nm');if(ni){ni.focus();ni.select()}
+  }else if(act==='namesave'){saveName()}
+  else if(act==='start'){
+    if(!S.timer){S.timer={ck:el.dataset.ck,acc:0,startedAt:Date.now()};save();render()}
+  }else if(act==='tpause'){
+    if(S.timer){S.timer.acc=elapsed();S.timer.startedAt=0;save();render()}
+  }else if(act==='tresume'){
+    if(S.timer){S.timer.startedAt=Date.now();save();render()}
+  }else if(act==='tstop'){
+    var sec=elapsed();
+    if(sec>0){var k=dkey(new Date());S.log[k]=(S.log[k]||0)+sec}
+    S.timer=null;save();render();
+  }else if(act==='goto'){gotoChapter(el.dataset.ck)}
+  else if(act==='backup'){
+    var ta=document.getElementById('bk'),m=document.getElementById('bkmsg');
+    ta.value=JSON.stringify(S);ta.select();
+    var ok=function(){m.textContent='Backup copied. Paste it somewhere safe.'};
+    var fail=function(){m.textContent='Could not copy automatically. The text is selected, so copy it manually.'};
+    try{navigator.clipboard.writeText(ta.value).then(ok,fail)}catch(err){fail()}
+  }else if(act==='restore'){
+    var ta2=document.getElementById('bk'),m2=document.getElementById('bkmsg');
+    try{
+      var o=JSON.parse(ta2.value);
+      if(!o||typeof o!=='object'||typeof o.done!=='object')throw new Error('bad');
+      S=normalize(o);
+      save();render();
+      var m3=document.getElementById('bkmsg');if(m3)m3.textContent='Restored.';
+    }catch(err){m2.textContent='Could not read this as a backup. Make sure you pasted the whole backup text.'}
+  }
+});
+
+/* theme: dark by default */
+var themeBtn=document.getElementById('themeBtn');
+function isDark(){
+  var t=document.documentElement.getAttribute('data-theme');
+  if(t)return t==='dark';
+  return window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+function themeLabel(){themeBtn.textContent=isDark()?'Light mode':'Dark mode'}
+var stT='dark';
+try{var q=localStorage.getItem(TKEY);if(q==='dark'||q==='light')stT=q}catch(e){}
+document.documentElement.setAttribute('data-theme',stT);
+themeBtn.addEventListener('click',function(){
+  var n=isDark()?'light':'dark';
+  document.documentElement.setAttribute('data-theme',n);
+  try{localStorage.setItem(TKEY,n)}catch(e){}
+  themeLabel();
+});
+themeLabel();
+
+route();
+})();
+</script>
+</body>
+</html>
