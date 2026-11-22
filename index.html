@@ -299,6 +299,37 @@ body{padding:0;background:var(--bg)}
   .foot{display:none}
 }
 @media (max-width:520px){.stats{gap:12px}.card{padding:18px;border-radius:20px}}
+
+/* ===== Colourful pass + per-subject cards ===== */
+.pgrid{grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.scard{display:flex;flex-direction:column;gap:16px;padding:20px;border-radius:20px;border:1px solid color-mix(in srgb,var(--c) 40%,var(--line));background:linear-gradient(160deg,color-mix(in srgb,var(--c) 20%,var(--surface)),var(--surface) 70%);position:relative;overflow:hidden;transition:transform .15s,border-color .15s}
+.scard::before{content:"";position:absolute;left:0;right:0;top:0;height:4px;background:var(--c)}
+.scard:hover{transform:translateY(-2px);border-color:var(--c)}
+.scard .sh{display:flex;align-items:center;gap:12px}
+.scard .tile{width:42px;height:42px;border-radius:13px;background:var(--c);color:var(--bg);font-weight:800;font-size:.85rem;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.scard .nm{flex:1;min-width:0;font-weight:800;font-size:1.08rem}
+.scard .sh .pc{font-weight:800;font-size:1.35rem;color:var(--c);font-variant-numeric:tabular-nums}
+.scard .pps{display:flex;flex-direction:column;gap:14px}
+.scard .pl{display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted);margin-bottom:6px}
+.scard .pl b{color:var(--fg);font-variant-numeric:tabular-nums}
+.scard .bar{height:8px}
+.scard .bar i{background:var(--c)}
+.scard .ct{display:block;font-size:.74rem;color:var(--muted);margin-top:4px}
+.stats .stat:nth-child(2) .ico{background:color-mix(in srgb,#6aa8ff 20%,transparent);color:#6aa8ff}
+.stats .stat:nth-child(3) .ico{background:color-mix(in srgb,#ffb86b 22%,transparent);color:#ffb86b}
+.stats .stat:nth-child(4) .ico{background:color-mix(in srgb,#4fd1a1 20%,transparent);color:#4fd1a1}
+.stats .stat:nth-child(5) .ico{background:color-mix(in srgb,#ff7fa8 20%,transparent);color:#ff7fa8}
+.stats .stat:nth-child(2){background:linear-gradient(160deg,color-mix(in srgb,#6aa8ff 12%,var(--surface)),var(--surface))}
+.stats .stat:nth-child(3){background:linear-gradient(160deg,color-mix(in srgb,#ffb86b 12%,var(--surface)),var(--surface))}
+.stats .stat:nth-child(4){background:linear-gradient(160deg,color-mix(in srgb,#4fd1a1 12%,var(--surface)),var(--surface))}
+.stats .stat:nth-child(5){background:linear-gradient(160deg,color-mix(in srgb,#ff7fa8 12%,var(--surface)),var(--surface))}
+.stats .overall{background:linear-gradient(120deg,color-mix(in srgb,#7c83ff 30%,var(--surface)),color-mix(in srgb,#c79bff 18%,var(--surface)) 55%,color-mix(in srgb,#ff7fa8 14%,var(--surface)))}
+.overall .ring .arc{stroke:url(#ringg)}
+.wk .c:nth-child(7n+1) i{background:#6aa8ff}.wk .c:nth-child(7n+2) i{background:#c79bff}.wk .c:nth-child(7n+3) i{background:#4fd1a1}.wk .c:nth-child(7n+4) i{background:#ffb86b}.wk .c:nth-child(7n+5) i{background:#ff7fa8}.wk .c:nth-child(7n+6) i{background:#6aa8ff}.wk .c:nth-child(7n) i{background:#c79bff}
+.cont{background:linear-gradient(160deg,color-mix(in srgb,#7c83ff 22%,var(--surface)),color-mix(in srgb,#c79bff 8%,var(--surface)) 70%)}
+.btn.pri{background:linear-gradient(90deg,#7c83ff,#c79bff 60%,#ff7fa8)}
+.logo{background:linear-gradient(135deg,#6aa8ff,#c79bff 55%,#ff7fa8)}
+.nav a.on{box-shadow:inset 3px 0 0 var(--c,var(--accent))}
 </style>
 </head>
 <body>
@@ -621,7 +652,7 @@ function renderDash(){
 
   /* stat cards */
   h+='<div class="stats">';
-  h+='<section class="card stat overall"><div class="ring"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="trk" cx="60" cy="60" r="52"/><circle class="arc" data-k="all" data-v="ring" data-en="1" cx="60" cy="60" r="52" stroke-dasharray="'+C+'" stroke-dashoffset="'+C+'"/></svg><div class="txt"><b data-k="all" data-v="pct1" data-en="1"></b></div></div>';
+  h+='<section class="card stat overall"><div class="ring"><svg viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="ringg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6aa8ff"/><stop offset="0.55" stop-color="#c79bff"/><stop offset="1" stop-color="#ff7fa8"/></linearGradient></defs><circle class="trk" cx="60" cy="60" r="52"/><circle class="arc" data-k="all" data-v="ring" data-en="1" cx="60" cy="60" r="52" stroke-dasharray="'+C+'" stroke-dashoffset="'+C+'"/></svg><div class="txt"><b data-k="all" data-v="pct1" data-en="1"></b></div></div>';
   h+='<div class="ov"><div class="nm">Overall Progress</div><div class="cap sub" data-k="all" data-v="chof" data-en="1"></div><span class="bar"><i data-k="all" data-v="bar"></i></span></div></section>';
   h+='<section class="card stat">'+ico('clock')+'<span class="lbl">Study time</span><span class="val" id="st-today">0s</span><span class="cap">Today</span></section>';
   h+='<section class="card stat">'+ico('flame')+'<span class="lbl">Study streak</span><span class="val" id="st-streak">0 days</span><span class="cap">Keep it going</span></section>';
@@ -633,8 +664,13 @@ function renderDash(){
   h+='<div class="dgrid"><div class="col">';
   h+='<section class="card"><div class="chead"><h2>Subject progress</h2></div>';
   h+='<div class="pgrid">';
-  PAPERS.forEach(function(p){
-    h+='<a class="prow s-'+p.sid+'" href="#'+p.sid+'"><span class="tile">'+TILE[p.sid]+'</span><span class="nm">'+p.en+'</span><span class="ct" data-k="p:'+p.id+'" data-v="chcnt"></span><span class="pc" data-k="p:'+p.id+'" data-v="pct1" data-en="1"></span><span class="bar"><i data-k="p:'+p.id+'" data-v="bar"></i></span></a>';
+  DATA.forEach(function(sb){
+    h+='<a class="scard s-'+sb.id+'" href="#'+sb.id+'"><div class="sh"><span class="tile">'+TILE[sb.id]+'</span><span class="nm">'+EN[sb.id]+'</span><span class="pc" data-k="s:'+sb.id+'" data-v="pct1" data-en="1"></span></div><div class="pps">';
+    sb.papers.forEach(function(p,i){
+      var lb=sb.papers.length>1?(i?'2nd paper':'1st paper'):'All chapters';
+      h+='<div class="pp"><div class="pl"><span>'+lb+'</span><b data-k="p:'+p.id+'" data-v="pct1" data-en="1"></b></div><span class="bar"><i data-k="p:'+p.id+'" data-v="bar"></i></span><span class="ct" data-k="p:'+p.id+'" data-v="chcnt"></span></div>';
+    });
+    h+='</div></a>';
   });
   h+='</div></section>';
   var wk=week(),mx=Math.max.apply(null,wk.map(function(x){return x.s}).concat([1])),tot=0;
