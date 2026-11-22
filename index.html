@@ -868,8 +868,6 @@ function renderDash(){
   h+='<section class="card stat">'+ico('cal')+'<span class="lbl">Upcoming exam</span><span class="val sm">'+(up?esc(up.n):'—')+'</span><span class="cap">'+(up?left(up.d):'None scheduled')+'</span></section>';
   h+='</div>';
 
-  h+='<div class="duo">'+pomoHtml()+heatHtml()+'</div>';
-
   /* two columns */
   h+='<div class="dgrid"><div class="col">';
   h+='<section class="card"><div class="chead"><h2>Subject progress</h2></div>';
@@ -927,6 +925,8 @@ function renderDash(){
   /* achievement */
   h+='<section class="card ach">'+ico('trophy')+'<div><h2>'+ac[0]+'</h2><p class="sub">'+ac[1]+'</p></div></section>';
   h+='</div></div>';
+
+  h+='<div class="duo">'+pomoHtml()+heatHtml()+'</div>';
 
   /* exams */
   h+='<section class="card"><div class="chead"><h2>Exam Countdown</h2></div>'+planHtml();
