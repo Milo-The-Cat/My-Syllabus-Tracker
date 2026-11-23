@@ -231,9 +231,9 @@ a{color:inherit;text-decoration:none}
 @media (prefers-reduced-motion:reduce){.bar i,.ring .arc{transition:none}}
 
 /* ===== Redesign: sidebar layout, subject colours, phone tab bar ===== */
-:root{--side:#ffffff;--c-phy:#2f6fd6;--c-math:#8a4fd6;--c-bio:#12805a;--c-chem:#b86a12;--c-ict:#d63a6f}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--side:#12152b;--c-phy:#6aa8ff;--c-math:#c79bff;--c-bio:#4fd1a1;--c-chem:#ffb86b;--c-ict:#ff7fa8}}
-:root[data-theme="dark"]{--side:#12152b;--c-phy:#6aa8ff;--c-math:#c79bff;--c-bio:#4fd1a1;--c-chem:#ffb86b;--c-ict:#ff7fa8}
+:root{--side:#ffffff;--c-phy:#2f6fd6;--c-math:#8a4fd6;--c-bio:#12805a;--c-chem:#b86a12;--c-ict:#d63a6f;--c-x0:#0e8f9a;--c-x1:#c2410c;--c-x2:#4d7c0f;--c-x3:#a21caf;--c-x4:#0369a1;--c-x5:#b45309}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--side:#12152b;--c-phy:#6aa8ff;--c-math:#c79bff;--c-bio:#4fd1a1;--c-chem:#ffb86b;--c-ict:#ff7fa8;--c-x0:#5fd6e0;--c-x1:#ff9a6b;--c-x2:#b4e35f;--c-x3:#f08be8;--c-x4:#7cc4ff;--c-x5:#ffd36b}}
+:root[data-theme="dark"]{--side:#12152b;--c-phy:#6aa8ff;--c-math:#c79bff;--c-bio:#4fd1a1;--c-chem:#ffb86b;--c-ict:#ff7fa8;--c-x0:#5fd6e0;--c-x1:#ff9a6b;--c-x2:#b4e35f;--c-x3:#f08be8;--c-x4:#7cc4ff;--c-x5:#ffd36b}
 .s-phy{--c:var(--c-phy)}.s-math{--c:var(--c-math)}.s-bio{--c:var(--c-bio)}.s-chem{--c:var(--c-chem)}.s-ict{--c:var(--c-ict)}
 body{padding:0;background:var(--bg)}
 .app{display:flex;min-height:100vh;max-width:1480px;margin:0 auto}
@@ -541,6 +541,27 @@ body::after{width:380px;height:380px;right:-90px;bottom:-110px;background:color-
 .wcbtn:hover{border-color:#ff6b6b;color:var(--fg)}
 .wcbtn.on{background:color-mix(in srgb,#ff6b6b 20%,transparent);border-color:#ff6b6b;color:#ff6b6b}
 .wcbtn:active{transform:scale(.95)}
+
+/* ===== Manage subjects ===== */
+.mlist{list-style:none;margin:0 0 12px;padding:0;display:flex;flex-direction:column;gap:8px}
+.mlist li{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;border:1px solid var(--line);flex-wrap:wrap}
+.mlist li.off{opacity:.55}
+.mlist .dot{width:12px;height:12px;border-radius:50%;background:var(--c);flex:0 0 auto}
+.mlist .mn{flex:1 1 9rem;min-width:0;display:flex;flex-direction:column}
+.mlist .mn small{color:var(--muted);font-size:.78rem}
+.mlist .btn{min-height:34px;padding:0 12px}
+.mlist .btn:disabled{opacity:.4}
+.ed .in{width:100%;min-width:0;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin-bottom:10px}
+.ed textarea.in{resize:vertical;line-height:1.6;margin-bottom:0}
+.edp{margin:14px 0;padding:14px;border-radius:16px;background:var(--accent-soft);display:flex;flex-direction:column;gap:10px}
+.edph{display:flex;gap:8px;align-items:flex-start}
+.edph .in{margin:0;font-weight:700}
+.edph .btn{flex:0 0 auto;min-height:40px}
+.edc{display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:12px;background:var(--surface);border:1px solid var(--line)}
+.edch{display:flex;gap:8px;align-items:center}
+.edch .in{margin:0;flex:1}
+.edch .n{flex:0 0 auto;width:24px;height:24px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-size:.75rem;font-weight:800;display:flex;align-items:center;justify-content:center}
+.ed .acts{margin-top:12px}
 </style>
 </head>
 <body>
@@ -694,6 +715,14 @@ function normalize(o){
     rev:(o.rev&&typeof o.rev==='object')?o.rev:{},
     now:(o.now&&typeof o.now==='object')?o.now:{},
     wch:(o.wch&&typeof o.wch==='object')?o.wch:{},
+    hide:(o.hide&&typeof o.hide==='object')?o.hide:{},
+    cs:Array.isArray(o.cs)?o.cs.filter(function(c){return c&&typeof c.id==='string'&&/^c[a-z0-9]+$/.test(c.id)&&typeof c.name==='string'&&Array.isArray(c.papers)&&c.papers.length}).map(function(c){
+      c.cls=typeof c.cls==='string'?c.cls:'';c.cc=(+c.cc>=0&&+c.cc<6)?Math.floor(+c.cc):0;
+      c.papers=c.papers.filter(function(p){return p&&typeof p.pid==='string'&&/^p\d+$/.test(p.pid)&&Array.isArray(p.ch)&&p.ch.length}).map(function(p){
+        p.n=typeof p.n==='string'?p.n:'Paper';
+        p.ch=p.ch.filter(function(h){return h&&typeof h.t==='string'&&Array.isArray(h.tp)&&h.tp.length}).map(function(h){h.tp=h.tp.filter(function(x){return typeof x==='string'&&x});if(!h.tp.length)h.tp=[h.t];return h});
+        return p}).filter(function(p){return p.ch.length});
+      return c}).filter(function(c){return c.papers.length}):[],
     sess:(o.sess&&typeof o.sess==='object')?o.sess:{},
     pick:typeof o.pick==='string'?o.pick:'',
     weak:(o.weak&&typeof o.weak==='object')?o.weak:{},
@@ -712,7 +741,35 @@ var C=2*Math.PI*52;
 var PAPERS=[];
 var EN={phy:'Physics',math:'Higher Math',bio:'Biology',chem:'Chemistry',ict:'ICT'};
 var TILE={phy:'Ph',math:'Hm',bio:'Bi',chem:'Ch',ict:'IC'};
-DATA.forEach(function(s){s.papers.forEach(function(p,i){p.sid=s.id;p.sname=s.name;p.sshort=s.short;p.en=EN[s.id]+(s.papers.length>1?(i?' 2nd Paper':' 1st Paper'):'');PAPERS.push(p)})});
+var BASE=DATA;
+function toSubj(c){
+  return {id:c.id,name:c.name,short:c.name,cust:true,cc:c.cc,cls:c.cls,papers:c.papers.map(function(p){
+    return {id:c.id+'_'+p.pid,pid:p.pid,n:p.n,name:p.n,ch:p.ch.map(function(h){return [h.t,h.tp.join('|')]})}
+  })};
+}
+function rebuild(){
+  DATA=BASE.filter(function(x){return !S.hide[x.id]}).concat(S.cs.map(toSubj));
+  if(!DATA.length){S.hide={};DATA=BASE.slice()}
+  PAPERS=[];
+  var css='';
+  DATA.forEach(function(s){
+    if(s.cust){
+      EN[s.id]=s.name;
+      TILE[s.id]=Array.from(s.name.trim()).slice(0,2).join('')||'?';
+      css+='.s-'+s.id+'{--c:var(--c-x'+s.cc+')}';
+    }
+    s.papers.forEach(function(p,i){
+      p.sid=s.id;p.sname=s.name;p.sshort=s.short;
+      p.en=s.cust?(s.name+(s.papers.length>1?' · '+p.n:'')):(EN[s.id]+(s.papers.length>1?(i?' 2nd Paper':' 1st Paper'):''));
+      PAPERS.push(p)
+    })
+  });
+  var st=document.getElementById('dynsty');
+  if(!st){st=document.createElement('style');st.id='dynsty';document.head.appendChild(st)}
+  st.textContent=css;
+  if(S.timer&&!validCk(S.timer.ck))S.timer=null;
+}
+rebuild();
 function byId(a,id){for(var i=0;i<a.length;i++)if(a[i].id===id)return a[i]}
 
 function topics(p,ci){
@@ -862,7 +919,7 @@ function validCk(ck){
 function curCk(){
   if(validCk(S.pick))return S.pick;
   var nx=nextChapter();
-  return nx?nx.ck:'phy1.0';
+  return nx?nx.ck:(PAPERS[0].id+'.0');
 }
 function bumpDay(n){var k=dkey(new Date());S.dd[k]=Math.max(0,(S.dd[k]||0)+n)}
 function pomoRem(){var p=S.pomo;return p.end>0?Math.max(0,Math.round((p.end-Date.now())/1000)):p.rem}
@@ -1130,6 +1187,7 @@ function renderNav(){
   DATA.forEach(function(s){
     h+='<a href="#'+s.id+'" class="s-'+s.id+(cur===s.id?' on':'')+'"><span class="dot"></span><span class="nt">'+(SEN[s.id]||s.short)+'</span><small data-k="s:'+s.id+'" data-v="pct"></small></a>';
   });
+  h+='<a href="#subjects" class="'+(cur==='subjects'?'on':'')+'"><svg class="ni" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span class="nt">Add / hide</span></a>';
   h+='<div class="grp">Together</div>';
   h+='<a href="#community" class="'+(cur==='community'?'on':'')+'"><svg class="ni" viewBox="0 0 24 24" aria-hidden="true">'+NI.com+'</svg><span class="nt">Community</span></a>';
   nav.innerHTML=h;
@@ -1169,7 +1227,7 @@ function renderDash(){
   DATA.forEach(function(sb){
     h+='<a class="scard s-'+sb.id+'" href="#'+sb.id+'"><div class="sh"><span class="tile">'+TILE[sb.id]+'</span><span class="nm">'+EN[sb.id]+'</span><span class="pc" data-k="s:'+sb.id+'" data-v="pct1" data-en="1"></span></div><div class="pps">';
     sb.papers.forEach(function(p,i){
-      var lb=sb.papers.length>1?(i?'2nd paper':'1st paper'):'All chapters';
+      var lb=sb.papers.length>1?(sb.cust?esc(p.n):(i?'2nd paper':'1st paper')):'All chapters';
       h+='<div class="pp"><div class="pl"><span>'+lb+'</span><b data-k="p:'+p.id+'" data-v="pct1" data-en="1"></b></div><span class="bar"><i data-k="p:'+p.id+'" data-v="bar"></i></span><span class="ct" data-k="p:'+p.id+'" data-v="chcnt"></span></div>';
     });
     h+='</div></a>';
@@ -1368,7 +1426,7 @@ function render(){
   var s=byId(DATA,cur);
   renderNav();
   app.classList.remove('enter');
-  if(s)renderSubject(s);else if(cur==='community')renderCommunity();else renderDash();
+  if(s)renderSubject(s);else if(cur==='subjects')renderManage();else if(cur==='community')renderCommunity();else renderDash();
   if(ENTER&&!RM){
     var seen=[];
     app.querySelectorAll(STAG).forEach(function(n){if(seen.indexOf(n)<0)seen.push(n)});
@@ -1385,7 +1443,7 @@ function render(){
 }
 function route(){
   var h=location.hash.slice(1);
-  cur=(h&&(byId(DATA,h)||h==='community'))?h:'dash';
+  cur=(h&&(byId(DATA,h)||h==='community'||h==='subjects'))?h:'dash';
   ENTER=true;render();ENTER=false;
   window.scrollTo(0,0);
 }
@@ -1475,11 +1533,110 @@ app.addEventListener('keydown',function(e){
   else if(ds.act==='tkin'){e.preventDefault();addTask()}
   else if(ds.act==='nmin'){e.preventDefault();saveName()}
 });
+
+/* ===== Manage subjects ===== */
+var ED=null;
+function newDraft(){return {id:'',name:'',cls:'',papers:[{pid:null,n:'Paper 1',ch:[{t:'',tp:''}]}]}}
+function draftOf(c){return {id:c.id,name:c.name,cls:c.cls||'',papers:c.papers.map(function(p){return {pid:p.pid,n:p.n,ch:p.ch.map(function(h){return {t:h.t,tp:h.tp.join('\n')}})}})}}
+function csById(id){for(var i=0;i<S.cs.length;i++)if(S.cs[i].id===id)return S.cs[i]}
+function nChap(x){var n=0;x.papers.forEach(function(p){n+=p.ch.length});return n}
+function edHtml(){
+  var h='<section class="card ed"><div class="chead"><h2>'+(ED.id?'Edit subject':'New subject')+'</h2></div>';
+  h+='<label class="nl" for="ed-n">Subject name</label><input class="in" id="ed-n" data-ed="name" maxlength="40" placeholder="e.g. Accounting" value="'+esc(ED.name)+'">';
+  h+='<label class="nl" for="ed-c">Class / level (optional)</label><input class="in" id="ed-c" data-ed="cls" maxlength="30" placeholder="e.g. Class 10" value="'+esc(ED.cls)+'">';
+  ED.papers.forEach(function(q,pi){
+    h+='<div class="edp"><div class="edph"><input class="in" data-ed="pn" data-p="'+pi+'" maxlength="40" aria-label="Paper name" value="'+esc(q.n)+'">'+(ED.papers.length>1?'<button class="btn" type="button" data-act="edrmp" data-p="'+pi+'">Remove paper</button>':'')+'</div>';
+    q.ch.forEach(function(c,ci){
+      h+='<div class="edc"><div class="edch"><span class="n">'+(ci+1)+'</span><input class="in" data-ed="ct" data-p="'+pi+'" data-c="'+ci+'" maxlength="80" placeholder="Chapter name" aria-label="Chapter name" value="'+esc(c.t)+'">'+(q.ch.length>1?'<button class="x" type="button" data-act="edrmc" data-p="'+pi+'" data-c="'+ci+'" aria-label="Remove chapter">×</button>':'')+'</div>';
+      h+='<textarea class="in" data-ed="tp" data-p="'+pi+'" data-c="'+ci+'" rows="3" placeholder="Topics, one per line (optional)" aria-label="Topics">'+esc(c.tp)+'</textarea></div>';
+    });
+    h+='<button class="btn" type="button" data-act="edaddc" data-p="'+pi+'">+ Add chapter</button></div>';
+  });
+  h+='<div class="acts"><button class="btn" type="button" data-act="edaddp">+ Add another paper</button></div>';
+  if(ED.id)h+='<p class="sub">If you delete or reorder chapters or topics, ticks you already made may shift.</p>';
+  h+='<div class="msg" id="edmsg" role="status"></div><div class="acts"><button class="btn pri" type="button" data-act="edsave">Save subject</button><button class="btn" type="button" data-act="edcancel">Cancel</button></div></section>';
+  return h;
+}
+function renderManage(){
+  var h='<div class="narrow mng"><div class="subhead"><h1>Add / hide subjects</h1><p class="sub">Not in HSC? Add your own subjects with their papers, chapters and topics. Hide the ones you do not need.</p></div>';
+  h+='<section class="card"><div class="chead"><h2>Your subjects</h2></div><ul class="mlist">';
+  BASE.forEach(function(x){
+    var hid=!!S.hide[x.id],dis=(!hid&&DATA.length<=1)?' disabled':'';
+    h+='<li class="s-'+x.id+(hid?' off':'')+'"><span class="dot"></span><span class="mn"><b>'+(SEN[x.id]||x.name)+'</b><small>HSC · '+x.papers.length+(x.papers.length>1?' papers':' paper')+(hid?' · hidden':'')+'</small></span><button class="btn" type="button" data-act="subhide" data-id="'+x.id+'"'+dis+'>'+(hid?'Show':'Hide')+'</button></li>';
+  });
+  S.cs.forEach(function(c){
+    h+='<li class="s-'+c.id+'"><span class="dot"></span><span class="mn"><b>'+esc(c.name)+'</b><small>'+(c.cls?esc(c.cls)+' · ':'')+c.papers.length+(c.papers.length>1?' papers':' paper')+' · '+nChap(c)+' chapters</small></span><button class="btn" type="button" data-act="subedit" data-id="'+c.id+'">Edit</button><button class="btn" type="button" data-act="subdel" data-id="'+c.id+'">Delete</button></li>';
+  });
+  h+='</ul>';
+  if(!ED)h+='<div class="acts"><button class="btn pri" type="button" data-act="subnew">+ Add subject</button></div>';
+  h+='</section>';
+  if(ED)h+=edHtml();
+  app.innerHTML=h+'</div>';
+}
+function mngClick(el,act){
+  var p=+el.dataset.p,c=+el.dataset.c;
+  function msg(t){var m=document.getElementById('edmsg');if(m)m.textContent=t}
+  if(act==='subnew'){ED=newDraft();render();return true}
+  if(act==='subedit'){var cs=csById(el.dataset.id);if(cs){ED=draftOf(cs);render()}return true}
+  if(act==='subdel'){
+    var id=el.dataset.id;
+    if(!confirm('Delete this subject and all of its progress?'))return true;
+    S.cs=S.cs.filter(function(x){return x.id!==id});
+    [S.done,S.custom,S.weak,S.rev,S.now,S.wch].forEach(function(o){Object.keys(o).forEach(function(k){if(k.indexOf(id+'_')===0)delete o[k]})});
+    rebuild();save();ED=null;render();return true;
+  }
+  if(act==='subhide'){
+    var hid=el.dataset.id;
+    if(S.hide[hid])delete S.hide[hid];else if(DATA.length>1)S.hide[hid]=1;
+    rebuild();save();render();return true;
+  }
+  if(act.indexOf('ed')!==0||!ED)return false;
+  if(act==='edaddp'){ED.papers.push({pid:null,n:'Paper '+(ED.papers.length+1),ch:[{t:'',tp:''}]});render();return true}
+  if(act==='edaddc'){ED.papers[p].ch.push({t:'',tp:''});render();return true}
+  if(act==='edrmp'){ED.papers.splice(p,1);render();return true}
+  if(act==='edrmc'){ED.papers[p].ch.splice(c,1);render();return true}
+  if(act==='edcancel'){ED=null;render();return true}
+  if(act==='edsave'){
+    var name=ED.name.trim();
+    if(!name){msg('Please write the subject name.');return true}
+    var ps=[];
+    ED.papers.forEach(function(q){
+      var ch=[];
+      q.ch.forEach(function(x){
+        var t=x.t.trim().replace(/\|/g,'/');if(!t)return;
+        var tp=x.tp.split('\n').map(function(l){return l.trim().replace(/\|/g,'/')}).filter(Boolean);
+        if(!tp.length)tp=[t];
+        ch.push({t:t,tp:tp});
+      });
+      if(ch.length)ps.push({pid:q.pid,n:q.n.trim().replace(/\|/g,'/')||'Paper',ch:ch});
+    });
+    if(!ps.length){msg('Add at least one chapter with a name.');return true}
+    var mx=0;ps.forEach(function(q){if(q.pid)mx=Math.max(mx,+q.pid.slice(1))});
+    ps.forEach(function(q){if(!q.pid)q.pid='p'+(++mx)});
+    var rec;
+    if(ED.id){rec=csById(ED.id);rec.name=name;rec.cls=ED.cls.trim();rec.papers=ps}
+    else{rec={id:'c'+Date.now().toString(36),name:name,cls:ED.cls.trim(),cc:S.cs.length%6,papers:ps};S.cs.push(rec)}
+    rebuild();save();ED=null;location.hash='#'+rec.id;
+    return true;
+  }
+  return false;
+}
+app.addEventListener('input',function(e){
+  var el=e.target,k=el.dataset.ed;
+  if(!k||!ED)return;
+  var p=+el.dataset.p,c=+el.dataset.c;
+  if(k==='name')ED.name=el.value;
+  else if(k==='cls')ED.cls=el.value;
+  else if(k==='pn')ED.papers[p].n=el.value;
+  else if(k==='ct')ED.papers[p].ch[c].t=el.value;
+  else if(k==='tp')ED.papers[p].ch[c].tp=el.value;
+});
 app.addEventListener('click',function(e){
   var el=e.target.closest('[data-act]');
   if(!el)return;
   var act=el.dataset.act;
   if(act==='chfull'){var fc=chapterOf(el.dataset.ck),fs=chStat(fc.p,fc.ci);act=(fs.t>0&&fs.d===fs.t)?'none':'all'}
+  if(mngClick(el,act))return;
   if(act.indexOf('cm')===0){cmClick(el,act);return}
   if(act==='paper'){curPaper[el.dataset.sid]=el.dataset.p;render()}
   else if(act==='chweak'){
