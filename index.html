@@ -6,6 +6,14 @@
 <title>Syllabus Tracker</title>
 
 <meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#0f1224">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Syllabus">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Hind+Siliguri:wght@400;500;600&display=swap">
 <style>
 /* Layout: dark-first dashboard. Top greeting and stat cards, then a two-column grid (subjects and weekly chart | continue, plan, achievement), then exams and backup. Indigo to violet accent, used on progress and the primary action. */
@@ -562,6 +570,10 @@ body::after{width:380px;height:380px;right:-90px;bottom:-110px;background:color-
 .edch .in{margin:0;flex:1}
 .edch .n{flex:0 0 auto;width:24px;height:24px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-size:.75rem;font-weight:800;display:flex;align-items:center;justify-content:center}
 .ed .acts{margin-top:12px}
+
+.inst .acts{margin:10px 0}
+.inst-h{line-height:1.7;margin-top:6px}
+.inst-h b{color:var(--fg)}
 </style>
 </head>
 <body>
@@ -1193,6 +1205,16 @@ function renderNav(){
   nav.innerHTML=h;
 }
 
+var deferredInstall=null;
+function isStandalone(){try{return window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true}catch(e){return false}}
+window.addEventListener('beforeinstallprompt',function(e){
+  e.preventDefault();deferredInstall=e;
+  var b=document.getElementById('instBtn');if(b)b.hidden=false;
+});
+window.addEventListener('appinstalled',function(){deferredInstall=null;if(cur==='dash')render()});
+if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){
+  window.addEventListener('load',function(){try{navigator.serviceWorker.register('sw.js').catch(function(){})}catch(e){}});
+}
 function renderDash(){
   var h='',today=new Date(),up=upcoming(),nx=nextChapter(),ac=achievement(),tm=S.timer;
   var dateTxt=today.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
@@ -1303,6 +1325,14 @@ function renderDash(){
   h+='</section>';
 
   h+='<div class="duo">'+badgesHtml()+weakListHtml()+'</div>';
+
+  /* install app */
+  if(!isStandalone()){
+    h+='<section class="card inst"><div class="chead"><h2>Install on your phone</h2></div>';
+    h+='<p class="sub">Add this tracker to your home screen. It opens like an app, full screen, and the dashboard also opens without internet.</p>';
+    h+='<div class="acts"><button class="btn pri" type="button" id="instBtn" data-act="install"'+(deferredInstall?'':' hidden')+'>Install app</button></div>';
+    h+='<p class="sub inst-h"><b>Android (Chrome):</b> tap the \u22ee menu, then <b>Install app</b> or <b>Add to Home screen</b>.<br><b>iPhone (Safari):</b> tap the Share button, then <b>Add to Home Screen</b>.<br><b>Computer (Chrome/Edge):</b> click the install icon at the right end of the address bar.</p></section>';
+  }
 
   /* backup */
   h+='<details class="card bk"><summary>Backup &amp; Restore</summary><p class="sub" style="margin:8px 0">Your data is stored only in this browser. If you clear browser data it is lost, so copy a backup now and then and keep it somewhere safe.</p>';
@@ -1636,6 +1666,10 @@ app.addEventListener('click',function(e){
   if(!el)return;
   var act=el.dataset.act;
   if(act==='chfull'){var fc=chapterOf(el.dataset.ck),fs=chStat(fc.p,fc.ci);act=(fs.t>0&&fs.d===fs.t)?'none':'all'}
+  if(act==='install'){
+    if(deferredInstall){var di=deferredInstall;deferredInstall=null;el.hidden=true;di.prompt();try{di.userChoice.then(function(){})}catch(x){}}
+    return;
+  }
   if(mngClick(el,act))return;
   if(act.indexOf('cm')===0){cmClick(el,act);return}
   if(act==='paper'){curPaper[el.dataset.sid]=el.dataset.p;render()}
