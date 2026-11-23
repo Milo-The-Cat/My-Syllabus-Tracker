@@ -416,6 +416,69 @@ button.hc.sel{outline:2px solid var(--fg);outline-offset:1px}
 .hd-l small{color:var(--muted);font-size:.74rem}
 .hd-l em{font-style:normal;font-weight:700;font-variant-numeric:tabular-nums;color:var(--c)}
 .hd-o{margin:0;font-size:.82rem}
+
+/* ===== Motion ===== */
+:root{--ease:cubic-bezier(.22,1,.36,1);--bad:#ff5a6a}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+@keyframes cellin{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
+@keyframes pop{0%{opacity:0;transform:scale(.7)}60%{opacity:1;transform:scale(1.08)}100%{transform:none}}
+@keyframes tick{0%{transform:rotate(45deg) scale(0)}60%{transform:rotate(45deg) scale(1.15)}100%{transform:rotate(45deg) scale(1)}}
+@keyframes livepulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--bad) 55%,transparent)}100%{box-shadow:0 0 0 7px transparent}}
+@keyframes sweep{from{background-position:-100% 0}to{background-position:200% 0}}
+@keyframes bodyin{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+@keyframes shine{0%{transform:translateX(-120%)}100%{transform:translateX(320%)}}
+@keyframes drift1{0%,100%{transform:translate(0,0)}50%{transform:translate(60px,40px)}}
+@keyframes drift2{0%,100%{transform:translate(0,0)}50%{transform:translate(-70px,-30px)}}
+body::before,body::after{content:"";position:fixed;z-index:0;pointer-events:none;border-radius:50%;filter:blur(80px)}
+body::before{width:420px;height:420px;left:20%;top:-130px;background:color-mix(in srgb,#7c83ff 30%,transparent);animation:drift1 18s ease-in-out infinite}
+body::after{width:380px;height:380px;right:-90px;bottom:-110px;background:color-mix(in srgb,#ff7fa8 22%,transparent);animation:drift2 21s ease-in-out infinite}
+.app{position:relative;z-index:1}
+.enter .rise{animation:rise .55s var(--ease) both;animation-delay:var(--d,0ms)}
+.enter .bar i{transition-duration:1.2s}
+.enter .ring .arc{transition-duration:1.5s}
+.enter .wk .c i{transform-origin:bottom;animation:grow .7s var(--ease) both;animation-delay:calc(250ms + var(--i,0) * 55ms)}
+.enter .hgrid .hc:not(.blank){animation:cellin .4s var(--ease) both;animation-delay:calc(300ms + var(--i,0) * 14ms)}
+.enter .bdg{animation:fadein .4s var(--ease) both;animation-delay:calc(350ms + var(--i,0) * 40ms)}
+.enter .bdg:not(.lock) .bi{animation:pop .55s var(--ease) both;animation-delay:calc(350ms + var(--i,0) * 40ms)}
+.card,.stat,.scard,.btn,.nav a,.ch{transition:transform .2s var(--ease),box-shadow .2s var(--ease),border-color .2s var(--ease),background-color .2s var(--ease),filter .2s var(--ease)}
+.stat:hover,.card:hover{box-shadow:0 12px 32px -14px color-mix(in srgb,var(--accent) 60%,transparent)}
+.scard:hover{transform:translateY(-3px);box-shadow:0 14px 34px -14px color-mix(in srgb,var(--c) 65%,transparent)}
+.scard:active{transform:translateY(0) scale(.99)}
+.scard:hover .bar i{filter:brightness(1.15)}
+.btn:hover{transform:translateY(-1px)}
+.btn.pri:hover{filter:brightness(1.1);box-shadow:0 8px 22px -8px color-mix(in srgb,var(--accent) 70%,transparent)}
+.btn:active,.rb:active,.tabs button:active,.wkb:active{transform:scale(.96)}
+.nav a:hover{transform:translateX(3px)}
+.nav a .dot{transition:transform .2s var(--ease)}
+.nav a:hover .dot,.nav a.on .dot{transform:scale(1.35)}
+.wk .c i{transition:opacity .15s var(--ease),filter .15s var(--ease)}
+.wk .c:hover i{opacity:.75}
+.hc{transition:transform .15s var(--ease)}
+.hgrid .hc:not(.blank):hover{transform:scale(1.1);z-index:1}
+.hc.today{animation:none}
+.overall .bar i,.scard .bar i,.cont .bar i{position:relative;overflow:hidden}
+.overall .bar i::after,.scard .bar i::after,.cont .bar i::after{content:"";position:absolute;top:0;bottom:0;width:40%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);animation:shine 2.6s ease-in-out infinite}
+.pix{display:block;width:100%;max-width:520px;height:40px;margin-top:14px;--px-off:var(--fg)}
+.live{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--bad);margin-right:8px;vertical-align:middle;animation:livepulse 1.6s ease-out infinite}
+/* checkbox: fills, tick snaps in, strike draws */
+.tl input[type=checkbox],.tl2 input[type=checkbox]{appearance:none;-webkit-appearance:none;width:20px;height:20px;border-radius:6px;border:1.5px solid var(--muted);background:var(--bg);position:relative;cursor:pointer;display:grid;place-content:center;transition:background-color .18s var(--ease),border-color .18s var(--ease),transform .12s var(--ease)}
+.tl input[type=checkbox]:hover,.tl2 input[type=checkbox]:hover{border-color:var(--accent)}
+.tl input[type=checkbox]:active,.tl2 input[type=checkbox]:active{transform:scale(.88)}
+.tl input[type=checkbox]::after,.tl2 input[type=checkbox]::after{content:"";width:5px;height:10px;margin-top:-2px;border:solid var(--accent-ink);border-width:0 2px 2px 0;transform:rotate(45deg) scale(0)}
+.tl input[type=checkbox]:checked,.tl2 input[type=checkbox]:checked{background:var(--accent);border-color:var(--accent)}
+.tl input[type=checkbox]:checked::after,.tl2 input[type=checkbox]:checked::after{transform:rotate(45deg) scale(1);animation:tick .3s var(--ease)}
+.tl label span,.tl2 label span{background:linear-gradient(currentColor,currentColor) no-repeat 0 55%/0 1px;transition:background-size .35s var(--ease),color .25s var(--ease);-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.tl input:checked + span,.tl2 input:checked + span{text-decoration:none;background-size:100% 1px;color:var(--muted)}
+.ch[open] .body{animation:bodyin .28s var(--ease)}
+.ch.full .no{background:var(--c);color:var(--bg)}
+.ch.flash summary{background-image:linear-gradient(100deg,transparent 0%,color-mix(in srgb,var(--c) 28%,transparent) 45%,transparent 70%);background-size:50% 100%;background-repeat:no-repeat;animation:sweep .9s var(--ease) 1}
+.ch.flash .no{animation:pop .5s var(--ease)}
+::view-transition-old(root),::view-transition-new(root){animation:none;mix-blend-mode:normal}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
 </style>
 </head>
 <body>
@@ -617,14 +680,32 @@ function chapStat(k){
   ps.forEach(function(p){p.ch.forEach(function(_,ci){var s=chStat(p,ci);t++;if(s.t>0&&s.d===s.t)d++})});
   return {d:d,t:t};
 }
+
+/* ===== Motion helpers ===== */
+var ENTER=false,RM=false;
+try{RM=window.matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){}
+function easeOut(p){return 1-Math.pow(1-p,4)}
+function tw(el,to,f,dur){
+  var from=el._n;el._n=to;
+  if(from==null&&ENTER)from=0;
+  if(RM||from==null||from===to){el.textContent=f(to);return}
+  cancelAnimationFrame(el._raf);
+  var t0=performance.now();dur=dur||(ENTER?900:500);
+  (function step(now){
+    var p=Math.min(1,(now-t0)/dur);
+    el.textContent=f(from+(to-from)*easeOut(p));
+    if(p<1)el._raf=requestAnimationFrame(step);
+  })(t0);
+}
+function later(fn){if(ENTER&&!RM)requestAnimationFrame(function(){requestAnimationFrame(fn)});else fn()}
 function updateStats(){
   document.querySelectorAll('[data-k]').forEach(function(el){
     var st=statFor(el.dataset.k),pc=pct(st),v=el.dataset.v,f=el.dataset.en?String:bn;
-    if(v==='pct')el.textContent=f(pc)+'%';
-    else if(v==='pct1')el.textContent=ratio(st).toFixed(1)+'%';
+    if(v==='pct')tw(el,pc,function(x){return f(Math.round(x))+'%'});
+    else if(v==='pct1')tw(el,ratio(st),function(x){return x.toFixed(1)+'%'});
     else if(v==='cnt')el.textContent=f(st.d)+'/'+f(st.t);
-    else if(v==='bar')el.style.width=ratio(st)+'%';
-    else if(v==='ring')el.style.strokeDashoffset=String((1-ratio(st)/100)*C);
+    else if(v==='bar'){var w=ratio(st)+'%';later(function(){el.style.width=w})}
+    else if(v==='ring'){var o=String((1-ratio(st)/100)*C);if(el.dataset.k==='all')pixSet(ratio(st)/100);later(function(){el.style.strokeDashoffset=o})}
     else if(v==='chcnt'){var c=chapStat(el.dataset.k);el.textContent=c.d+'/'+c.t+' chapters'}
     else if(v==='chof'){var c2=chapStat(el.dataset.k);el.textContent=c2.d+' of '+c2.t+' chapters completed'}
   });
@@ -747,7 +828,7 @@ var PC=2*Math.PI*44;
 setInterval(pomoTick,1000);
 function pomoHtml(){
   var p=S.pomo,r=pomoRem(),run=p.end>0,nx=nextChapter();
-  var h='<section class="card pomo"><div class="chead"><span class="eyebrow">Pomodoro</span><span class="sub">Round '+(((p.round-1)%4)+1)+' of 4</span></div>';
+  var h='<section class="card pomo"><div class="chead"><span class="eyebrow">'+(run?'<i class="live"></i>':'')+'Pomodoro</span><span class="sub">Round '+(((p.round-1)%4)+1)+' of 4</span></div>';
   h+='<div class="pm-ring"><svg viewBox="0 0 100 100" aria-hidden="true"><circle class="trk" cx="50" cy="50" r="44"/><circle id="pm-a" class="arc" cx="50" cy="50" r="44" stroke-dasharray="'+PC+'" stroke-dashoffset="'+(PC*(1-r/pomoTotal()))+'"/></svg><div class="txt"><b id="pm-t">'+pad(Math.floor(r/60))+':'+pad(r%60)+'</b><span>'+(p.m==='f'?'Focus time':'Break time')+'</span></div></div>';
   h+='<div class="btns"><button class="btn big" type="button" data-act="pomo">'+(run?'Pause':'Start')+'</button><button class="btn" type="button" data-act="pomoskip">'+(p.m==='f'?'Skip':'Skip break')+'</button><button class="btn" type="button" data-act="pomoreset">Reset</button></div>';
   h+='<p class="sub pm-note">'+(function(){var c=chapterOf(curCk());return 'Studying: '+esc(c.p.ch[c.ci][0])})()+'</p></section>';
@@ -919,7 +1000,7 @@ function renderDash(){
   /* stat cards */
   h+='<div class="stats">';
   h+='<section class="card stat overall"><div class="ring"><svg viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="ringg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6aa8ff"/><stop offset="0.55" stop-color="#c79bff"/><stop offset="1" stop-color="#ff7fa8"/></linearGradient></defs><circle class="trk" cx="60" cy="60" r="52"/><circle class="arc" data-k="all" data-v="ring" data-en="1" cx="60" cy="60" r="52" stroke-dasharray="'+C+'" stroke-dashoffset="'+C+'"/></svg><div class="txt"><b data-k="all" data-v="pct1" data-en="1"></b></div></div>';
-  h+='<div class="ov"><div class="nm">Overall Progress</div><div class="cap sub" data-k="all" data-v="chof" data-en="1"></div><span class="bar"><i data-k="all" data-v="bar"></i></span></div></section>';
+  h+='<div class="ov"><div class="nm">Overall Progress</div><div class="cap sub" data-k="all" data-v="chof" data-en="1"></div><span class="bar"><i data-k="all" data-v="bar"></i></span><canvas class="pix" aria-hidden="true"></canvas></div></section>';
   h+='<section class="card stat">'+ico('clock')+'<span class="lbl">Study time</span><span class="val" id="st-today">0s</span><span class="cap">Today</span></section>';
   h+='<section class="card stat">'+ico('flame')+'<span class="lbl">Study streak</span><span class="val" id="st-streak">0 days</span><span class="cap">Keep it going</span></section>';
   h+='<section class="card stat">'+ico('target')+'<span class="lbl">Today\'s goal</span><span class="val" id="st-goal">0.0%</span><span class="cap">Target <input class="goalin" type="number" min="1" max="1440" id="goal" data-act="goal" value="'+S.goalMin+'" aria-label="Daily target in minutes"> min</span></section>';
@@ -964,7 +1045,7 @@ function renderDash(){
   if(tm){
     var running=!!(+tm.startedAt);
     var tp=chapterOf(tm.ck);
-    h+='<div class="timer"><div><small>Studying: '+esc(tp.p.ch[tp.ci][0])+'</small><b id="tm">'+clock(elapsed())+'</b></div><div class="tbtns">';
+    h+='<div class="timer"><div><small>'+(running?'<i class="live"></i>':'')+'Studying: '+esc(tp.p.ch[tp.ci][0])+'</small><b id="tm">'+clock(elapsed())+'</b></div><div class="tbtns">';
     h+='<button class="btn" type="button" data-act="'+(running?'tpause':'tresume')+'">'+(running?'Pause':'Resume')+'</button>';
     h+='<button class="btn pri" type="button" data-act="tstop">Stop &amp; save</button></div></div>';
   }else{
@@ -1055,17 +1136,90 @@ function live(){
 }
 setInterval(live,1000);
 
+
+/* ===== Pixel wave under overall progress ===== */
+var PIX={p:0,shown:0,ripples:[],raf:0,t0:performance.now(),started:false};
+function pixSet(v){
+  if(Math.abs(v-PIX.p)>1e-6&&PIX.started)PIX.ripples.push({at:performance.now(),from:v});
+  PIX.p=v;PIX.started=true;
+  if(ENTER){PIX.shown=0;if(!RM)PIX.ripples.push({at:performance.now()+700})}
+  if(!PIX.raf)PIX.raf=requestAnimationFrame(pixFrame);
+}
+function pixRGB(t){
+  var a=[[106,168,255],[199,155,255],[255,127,168]],x=t*2,i=Math.min(1,Math.floor(x)),f=x-i;
+  return a[i].map(function(c,k){return Math.round(c+(a[i+1][k]-c)*f)});
+}
+function pixFrame(now){
+  PIX.raf=0;
+  var cv=document.querySelector('canvas.pix');
+  if(!cv||document.hidden)return;
+  var dpr=Math.min(2,window.devicePixelRatio||1),W=cv.clientWidth,H=cv.clientHeight;
+  if(!W||!H)return;
+  if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr)}
+  var off=getComputedStyle(cv).getPropertyValue('--px-off').trim()||'#888';
+  var ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var size=4,gap=2,step=size+gap,cols=Math.floor((W+gap)/step),rows=Math.floor((H+gap)/step);
+  var ox=(W-(cols*step-gap))/2,oy=H-(rows*step-gap);
+  PIX.shown+=(PIX.p-PIX.shown)*(RM?1:0.06);
+  if(Math.abs(PIX.p-PIX.shown)<0.0005)PIX.shown=PIX.p;
+  var edge=PIX.shown*cols,t=(now-PIX.t0)/1000;
+  PIX.ripples=PIX.ripples.filter(function(r){return now-r.at<1800});
+  for(var c=0;c<cols;c++){
+    var on=c<edge-0.0001||(PIX.p>0&&c===0);
+    var w=RM?0.5:0.5+0.32*Math.sin(c*0.22-t*1.6)+0.18*Math.sin(c*0.07+t*0.9);
+    var rip=0;
+    PIX.ripples.forEach(function(r){
+      var age=(now-r.at)/1000;if(age<0)return;var d=Math.abs(c-edge)-age*42;
+      rip+=Math.exp(-d*d/10)*Math.max(0,1-age/1.8);
+    });
+    var hgt=Math.max(1,Math.min(rows,w*rows*0.9+rip*rows));
+    var rgb=pixRGB(cols>1?c/(cols-1):0),col='rgb('+rgb[0]+','+rgb[1]+','+rgb[2]+')';
+    for(var r=0;r<rows;r++){
+      var fb=rows-1-r,lit=fb<hgt;
+      var a=lit?(on?0.6+0.4*(1-fb/rows):0.15):(on?0.14:0.05);
+      if(lit&&fb>=Math.floor(hgt)-1&&!RM)a=Math.min(1,a+0.15);
+      ctx.globalAlpha=a;ctx.fillStyle=on?col:off;
+      ctx.fillRect(ox+c*step,oy+r*step,size,size);
+    }
+  }
+  ctx.globalAlpha=1;
+  if(!RM)PIX.raf=requestAnimationFrame(pixFrame);
+}
+document.addEventListener('visibilitychange',function(){if(!document.hidden&&!PIX.raf)PIX.raf=requestAnimationFrame(pixFrame)});
+window.addEventListener('resize',function(){if(!PIX.raf)PIX.raf=requestAnimationFrame(pixFrame)});
+function markFull(){
+  app.querySelectorAll('details.ch').forEach(function(d){
+    var c=chapterOf(d.dataset.ck),st=chStat(c.p,c.ci);
+    var full=st.t>0&&st.d===st.t,was=d.classList.contains('full');
+    d.classList.toggle('full',full);
+    if(full&&!was&&d._seen&&!RM){d.classList.remove('flash');void d.offsetWidth;d.classList.add('flash')}
+    d._seen=true;
+  });
+}
+var STAG='.dhead,.subhead,.stats>*,.dgrid .col>*,.duo>*,.scard,main>section,main>details,.narrow>.tabs,.flt,.ch';
 function render(){
   var s=byId(DATA,cur);
   renderNav();
+  app.classList.remove('enter');
   if(s)renderSubject(s);else if(cur==='community')renderCommunity();else renderDash();
+  if(ENTER&&!RM){
+    var seen=[];
+    app.querySelectorAll(STAG).forEach(function(n){if(seen.indexOf(n)<0)seen.push(n)});
+    seen.forEach(function(n,i){n.style.setProperty('--d',Math.min(i,12)*45+'ms');n.classList.add('rise')});
+    [['.wk .c i'],['.hgrid .hc:not(.blank)'],['.bdg']].forEach(function(q){
+      app.querySelectorAll(q[0]).forEach(function(n,i){n.style.setProperty('--i',i)});
+    });
+    void app.offsetWidth;app.classList.add('enter');
+    clearTimeout(render._t);render._t=setTimeout(function(){app.classList.remove('enter')},1800);
+  }
   updateStats();
+  markFull();
   live();
 }
 function route(){
   var h=location.hash.slice(1);
   cur=(h&&(byId(DATA,h)||h==='community'))?h:'dash';
-  render();
+  ENTER=true;render();ENTER=false;
   window.scrollTo(0,0);
 }
 window.addEventListener('hashchange',route);
@@ -1087,7 +1241,7 @@ app.addEventListener('change',function(e){
   var el=e.target,act=el.dataset.act;
   if(act==='tick'){
     if(el.checked){if(!S.done[el.dataset.id])bumpDay(1);S.done[el.dataset.id]=1}else{if(S.done[el.dataset.id])bumpDay(-1);delete S.done[el.dataset.id]}
-    save();updateStats();
+    save();updateStats();markFull();
   }else if(act==='exam'){
     var ex=byId(S.examList,el.dataset.key);
     if(ex){ex.d=el.value;save()}
@@ -1185,7 +1339,7 @@ app.addEventListener('click',function(e){
     save();
     var box=el.closest('details');
     box.querySelectorAll('input[data-act=tick]').forEach(function(i){i.checked=(act==='all')});
-    updateStats();
+    updateStats();markFull();
   }else if(act==='addex'){addEx()}
   else if(act==='delex'){
     S.examList=S.examList.filter(function(x){return x.id!==el.dataset.id});
@@ -1461,7 +1615,7 @@ function cmKey(act){
 
 /* theme: dark by default */
 var themeBtn=document.getElementById('themeBtn');
-document.getElementById('themeBtn2').addEventListener('click',function(){themeBtn.click()});
+document.getElementById('themeBtn2').addEventListener('click',function(){flipTheme(document.getElementById('themeBtn2'))});
 function isDark(){
   var t=document.documentElement.getAttribute('data-theme');
   if(t)return t==='dark';
@@ -1471,12 +1625,18 @@ function themeLabel(){themeBtn.textContent=isDark()?'Light mode':'Dark mode'}
 var stT='dark';
 try{var q=localStorage.getItem(TKEY);if(q==='dark'||q==='light')stT=q}catch(e){}
 document.documentElement.setAttribute('data-theme',stT);
-themeBtn.addEventListener('click',function(){
+function flipTheme(src){
   var n=isDark()?'light':'dark';
-  document.documentElement.setAttribute('data-theme',n);
-  try{localStorage.setItem(TKEY,n)}catch(e){}
-  themeLabel();
-});
+  var go=function(){document.documentElement.setAttribute('data-theme',n);try{localStorage.setItem(TKEY,n)}catch(e){}themeLabel()};
+  if(RM||!document.startViewTransition||!src||!src.getBoundingClientRect||src.offsetParent===null){go();return}
+  var r=src.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;
+  var rad=Math.hypot(Math.max(x,innerWidth-x),Math.max(y,innerHeight-y));
+  var vt=document.startViewTransition(go);
+  vt.ready.then(function(){
+    document.documentElement.animate({clipPath:['circle(0 at '+x+'px '+y+'px)','circle('+rad+'px at '+x+'px '+y+'px)']},{duration:520,easing:'cubic-bezier(.22,1,.36,1)',pseudoElement:'::view-transition-new(root)'});
+  }).catch(function(){});
+}
+themeBtn.addEventListener('click',function(){flipTheme(themeBtn)});
 themeLabel();
 
 cmInit();
