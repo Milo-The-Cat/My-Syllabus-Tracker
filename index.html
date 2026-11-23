@@ -583,6 +583,13 @@ body::after{width:380px;height:380px;right:-90px;bottom:-110px;background:color-
 .cm-bm button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .cm-wh{margin:0 0 10px}
 .cm-wh b{color:var(--accent)}
+
+.remb{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;background:linear-gradient(120deg,color-mix(in srgb,#ffb86b 22%,var(--surface)),var(--surface));border-color:color-mix(in srgb,#ffb86b 55%,var(--line))}
+.remb .sub{margin:2px 0 0}
+.remrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0}
+.remrow .nl{margin:0}
+.remt{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:7px 12px;color:var(--fg);color-scheme:inherit}
+.remc .acts{margin:8px 0}
 </style>
 </head>
 <body>
@@ -736,6 +743,8 @@ function normalize(o){
     rev:(o.rev&&typeof o.rev==='object')?o.rev:{},
     now:(o.now&&typeof o.now==='object')?o.now:{},
     wch:(o.wch&&typeof o.wch==='object')?o.wch:{},
+    rem:{on:!!(o.rem&&o.rem.on),t:(o.rem&&typeof o.rem.t==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(o.rem.t))?o.rem.t:'18:00'},
+    remLast:typeof o.remLast==='string'?o.remLast:'',
     hide:(o.hide&&typeof o.hide==='object')?o.hide:{},
     cs:Array.isArray(o.cs)?o.cs.filter(function(c){return c&&typeof c.id==='string'&&/^c[a-z0-9]+$/.test(c.id)&&typeof c.name==='string'&&Array.isArray(c.papers)&&c.papers.length}).map(function(c){
       c.cls=typeof c.cls==='string'?c.cls:'';c.cc=(+c.cc>=0&&+c.cc<6)?Math.floor(+c.cc):0;
@@ -1237,6 +1246,8 @@ function renderDash(){
   }
   h+='</div><span class="pill">'+dateTxt+'</span></div>';
 
+  h+=remBanner();
+
   /* stat cards */
   h+='<div class="stats">';
   h+='<section class="card stat overall"><div class="ring"><svg viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="ringg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6aa8ff"/><stop offset="0.55" stop-color="#c79bff"/><stop offset="1" stop-color="#ff7fa8"/></linearGradient></defs><circle class="trk" cx="60" cy="60" r="52"/><circle class="arc" data-k="all" data-v="ring" data-en="1" cx="60" cy="60" r="52" stroke-dasharray="'+C+'" stroke-dashoffset="'+C+'"/></svg><div class="txt"><b data-k="all" data-v="pct1" data-en="1"></b></div></div>';
@@ -1334,6 +1345,8 @@ function renderDash(){
   h+='</section>';
 
   h+='<div class="duo">'+badgesHtml()+weakListHtml()+'</div>';
+
+  h+=remCard();
 
   /* install app */
   if(!isStandalone()){
@@ -1670,6 +1683,74 @@ app.addEventListener('input',function(e){
   else if(k==='ct')ED.papers[p].ch[c].t=el.value;
   else if(k==='tp')ED.papers[p].ch[c].tp=el.value;
 });
+
+/* ===== Daily reminder ===== */
+function remDue(){
+  if(!S.rem.on)return false;
+  var n=new Date(),p=S.rem.t.split(':');
+  return n.getHours()*60+n.getMinutes()>=(+p[0])*60+(+p[1])&&todaySec()<=0;
+}
+function remText(){
+  var st=0,d=new Date();d.setDate(d.getDate()-1);
+  while((S.log[dkey(d)]||0)>0){st++;d.setDate(d.getDate()-1)}
+  return st>0?{t:'Keep your '+st+'-day streak alive',b:'You have not studied today. Even 20 minutes counts!'}:{t:'Time to study',b:'You have not studied today yet. Start a short session now.'};
+}
+function remNotify(title,body){
+  try{
+    if(!('Notification' in window)||Notification.permission!=='granted')return false;
+    var opt={body:body,icon:'icon-192.png',badge:'icon-192.png',tag:'daily-reminder'};
+    if(navigator.serviceWorker&&navigator.serviceWorker.getRegistration){
+      navigator.serviceWorker.getRegistration().then(function(r){if(r)r.showNotification(title,opt);else new Notification(title,opt)}).catch(function(){try{new Notification(title,opt)}catch(e){}});
+    }else new Notification(title,opt);
+    return true;
+  }catch(e){return false}
+}
+function remCheck(){
+  var today=dkey(new Date());
+  if(!remDue()||S.remLast===today)return;
+  if(document.visibilityState==='visible')return;
+  var m=remText();
+  if(remNotify(m.t,m.b)){S.remLast=today;save()}
+}
+setInterval(remCheck,30000);
+document.addEventListener('visibilitychange',remCheck);
+function remBanner(){
+  if(!remDue())return '';
+  var m=remText();
+  return '<section class="card remb"><div><b>'+m.t+'</b><p class="sub">'+m.b+'</p></div><button class="btn pri" type="button" data-act="start" data-ck="'+curCk()+'">Start studying</button></section>';
+}
+function remCard(){
+  var h='<section class="card remc"><div class="chead"><h2>Daily reminder</h2><span class="sub">'+(S.rem.on?'On':'Off')+'</span></div>';
+  h+='<p class="sub">Get a nudge if you have not studied by your chosen time. It also protects your streak.</p>';
+  h+='<div class="remrow"><label class="nl" for="remt">Remind me at</label><input type="time" id="remt" class="remt" data-act="remtime" value="'+S.rem.t+'"></div>';
+  h+='<div class="acts"><button class="btn pri" type="button" data-act="remtoggle">'+(S.rem.on?'Turn off':'Turn on')+'</button><button class="btn" type="button" data-act="remtest">Send test</button></div>';
+  h+='<div class="msg" id="remmsg" role="status"></div>';
+  h+='<p class="sub inst-h">Notifications arrive while the app is open or running in the background on your phone (installing it helps). If the app is fully closed, the reminder shows as a banner when you open the dashboard.</p></section>';
+  return h;
+}
+function remMsg(t){var m=document.getElementById('remmsg');if(m)m.textContent=t}
+function remClick(act){
+  var supported='Notification' in window;
+  if(act==='remtoggle'){
+    if(S.rem.on){S.rem.on=false;save();render();return}
+    S.rem.on=true;save();
+    if(supported&&Notification.permission==='default'){
+      try{var pr=Notification.requestPermission();if(pr&&pr.then)pr.then(function(){render();remMsg(Notification.permission==='granted'?'Reminder is on.':'Notifications are blocked, so you will see the reminder as a banner here.')});else render()}catch(e){render()}
+    }else{
+      render();
+      remMsg(!supported?'This browser has no notifications. You will see a banner here instead.':(Notification.permission==='granted'?'Reminder is on.':'Notifications are blocked in your browser settings. You will see a banner here instead.'));
+    }
+  }else if(act==='remtest'){
+    if(!supported){remMsg('This browser does not support notifications.');return}
+    if(Notification.permission==='default'){try{Notification.requestPermission().then(function(){remClick('remtest')})}catch(e){}return}
+    if(Notification.permission!=='granted'){remMsg('Notifications are blocked. Allow them in your browser or phone settings for this site.');return}
+    var m=remText();remNotify(m.t,m.b);remMsg('Test sent. Check your notifications.');
+  }
+}
+app.addEventListener('change',function(e){
+  var el=e.target;
+  if(el.dataset&&el.dataset.act==='remtime'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(el.value)){S.rem.t=el.value;S.remLast='';save()}
+});
 app.addEventListener('click',function(e){
   var el=e.target.closest('[data-act]');
   if(!el)return;
@@ -1679,6 +1760,7 @@ app.addEventListener('click',function(e){
     if(deferredInstall){var di=deferredInstall;deferredInstall=null;el.hidden=true;di.prompt();try{di.userChoice.then(function(){})}catch(x){}}
     return;
   }
+  if(act==='remtoggle'||act==='remtest'){remClick(act);return}
   if(mngClick(el,act))return;
   if(act.indexOf('cm')===0){cmClick(el,act);return}
   if(act==='paper'){curPaper[el.dataset.sid]=el.dataset.p;render()}
