@@ -510,6 +510,17 @@ body::after{width:380px;height:380px;right:-90px;bottom:-110px;background:color-
 .exl label{display:flex;gap:10px;align-items:flex-start;padding:6px 0;cursor:pointer;font-size:.9rem}
 .exp input[type=checkbox],.exl input[type=checkbox]{width:20px;height:20px;flex:0 0 auto;accent-color:var(--c,var(--accent));margin:0}
 .exl input[type=checkbox]{margin-top:.15rem}
+
+/* ===== Mark whole chapter + exam percent ===== */
+.fullbtn{flex:0 0 auto;min-height:30px;padding:0 12px;border-radius:99px;border:1px solid var(--line);background:transparent;color:var(--muted);font-size:.76rem;font-weight:700;transition:background-color .18s var(--ease),color .18s var(--ease),border-color .18s var(--ease),transform .12s var(--ease)}
+.fullbtn:hover{border-color:var(--c,var(--accent));color:var(--fg)}
+.fullbtn.on{background:var(--c,var(--accent));border-color:var(--c,var(--accent));color:var(--bg)}
+.fullbtn:active{transform:scale(.95)}
+.upc{display:block;margin-top:6px}
+.upc b{color:var(--accent);font-size:1rem}
+.stat .bar{margin-top:6px;height:6px}
+.stat .bar i{background:linear-gradient(90deg,#ff7fa8,#c79bff)}
+.cont .lnk{display:block}
 </style>
 </head>
 <body>
@@ -1036,6 +1047,10 @@ function filtHtml(){
   o.forEach(function(x){h+='<button type="button" data-act="filt" data-f="'+x[0]+'" class="'+(filt===x[0]?'on':'')+'" aria-pressed="'+(filt===x[0])+'">'+x[1]+'</button>'});
   return h+'</div>';
 }
+function fullBtn(ck){
+  var c=chapterOf(ck),st=chStat(c.p,c.ci),full=st.t>0&&st.d===st.t;
+  return '<button class="fullbtn'+(full?' on':'')+'" type="button" data-act="chfull" data-ck="'+ck+'" aria-pressed="'+full+'">'+(full?'Done':'Mark done')+'</button>';
+}
 function chipsHtml(p,ci){
   var ck=p.id+'.'+ci,w=0,h='';
   topics(p,ci).forEach(function(t){if(S.weak[t.id])w++});
@@ -1099,7 +1114,11 @@ function renderDash(){
   h+='<section class="card stat">'+ico('clock')+'<span class="lbl">Study time</span><span class="val" id="st-today">0s</span><span class="cap">Today</span></section>';
   h+='<section class="card stat">'+ico('flame')+'<span class="lbl">Study streak</span><span class="val" id="st-streak">0 days</span><span class="cap">Keep it going</span></section>';
   h+='<section class="card stat">'+ico('target')+'<span class="lbl">Today\'s goal</span><span class="val" id="st-goal">0.0%</span><span class="cap">Target <input class="goalin" type="number" min="1" max="1440" id="goal" data-act="goal" value="'+S.goalMin+'" aria-label="Daily target in minutes"> min</span></section>';
-  h+='<section class="card stat">'+ico('cal')+'<span class="lbl">Upcoming exam</span><span class="val sm">'+(up?esc(up.n):'—')+'</span><span class="cap">'+(up?left(up.d):'None scheduled')+'</span></section>';
+  h+='<section class="card stat">'+ico('cal')+'<span class="lbl">Upcoming exam</span><span class="val sm">'+(up?esc(up.n):'—')+'</span><span class="cap">'+(up?left(up.d):'None scheduled')+'</span>'+(function(){
+    if(!up)return '';
+    var uc=(up.cks||[]).filter(validCk),us=uc.length?exStat(uc):allStat(),ur=ratio(us);
+    return '<span class="cap upc"><b>'+ur.toFixed(0)+'%</b> of '+(uc.length?uc.length+' chapters':'syllabus')+' done</span><span class="bar"><i style="width:'+ur+'%"></i></span>';
+  })()+'</section>';
   h+='</div>';
 
   /* two columns */
@@ -1145,6 +1164,8 @@ function renderDash(){
     h+='<button class="btn pri" type="button" data-act="tstop">Stop &amp; save</button></div></div>';
   }else{
     h+='<div class="btns"><button class="btn pri big" type="button" data-act="start" data-ck="'+curCk()+'">Start studying</button><button class="btn" type="button" data-act="goto" data-ck="'+curCk()+'">View</button></div>';
+    var cs0=chStat(pk.p,pk.ci),cfull=cs0.t>0&&cs0.d===cs0.t;
+    h+='<button class="lnk" type="button" data-act="chfull" data-ck="'+curCk()+'">'+(cfull?'Mark this chapter as not done':'Mark whole chapter as done')+'</button>';
     if(nx&&nx.ck!==curCk())h+='<button class="lnk" type="button" data-act="picknext" data-ck="'+nx.ck+'">Jump to next uncompleted chapter</button>';
   }
   h+='</section>';
@@ -1205,7 +1226,7 @@ function renderSubject(s){
     var ck=p.id+'.'+ci,k='c:'+p.id+':'+ci;
     if(!chapPass(p,ci))return;
     shown++;
-    h+='<details class="ch" data-ck="'+ck+'"'+(openSet[ck]?' open':'')+'><summary><span class="no">'+bn(ci+1)+'</span><span class="nm">'+c[0]+'</span><span class="meta">'+chipsHtml(p,ci)+'<span data-k="'+k+'" data-v="cnt"></span><b data-k="'+k+'" data-v="pct"></b></span><span class="bar"><i data-k="'+k+'" data-v="bar"></i></span></summary><div class="body"><ul class="tl">';
+    h+='<details class="ch" data-ck="'+ck+'"'+(openSet[ck]?' open':'')+'><summary><span class="no">'+bn(ci+1)+'</span><span class="nm">'+c[0]+'</span><span class="meta">'+chipsHtml(p,ci)+fullBtn(ck)+'<span data-k="'+k+'" data-v="cnt"></span><b data-k="'+k+'" data-v="pct"></b></span><span class="bar"><i data-k="'+k+'" data-v="bar"></i></span></summary><div class="body"><ul class="tl">';
     topics(p,ci).forEach(function(t){
       h+='<li><label><input type="checkbox" data-act="tick" data-id="'+t.id+'"'+(S.done[t.id]?' checked':'')+'><span>'+esc(t.t)+'</span></label>'+weakBtn(t.id,ck)+(t.custom?'<button class="x" type="button" data-act="del" data-ck="'+ck+'" data-id="'+t.id+'" aria-label="Delete topic">×</button>':'')+'</li>';
     });
@@ -1288,6 +1309,8 @@ function markFull(){
     var c=chapterOf(d.dataset.ck),st=chStat(c.p,c.ci);
     var full=st.t>0&&st.d===st.t,was=d.classList.contains('full');
     d.classList.toggle('full',full);
+    var fb=d.querySelector('.fullbtn');
+    if(fb){fb.classList.toggle('on',full);fb.textContent=full?'Done':'Mark done';fb.setAttribute('aria-pressed',full)}
     if(full&&!was&&d._seen&&!RM){d.classList.remove('flash');void d.offsetWidth;d.classList.add('flash')}
     d._seen=true;
   });
@@ -1408,6 +1431,7 @@ app.addEventListener('click',function(e){
   var el=e.target.closest('[data-act]');
   if(!el)return;
   var act=el.dataset.act;
+  if(act==='chfull'){var fc=chapterOf(el.dataset.ck),fs=chStat(fc.p,fc.ci);act=(fs.t>0&&fs.d===fs.t)?'none':'all'}
   if(act.indexOf('cm')===0){cmClick(el,act);return}
   if(act==='paper'){curPaper[el.dataset.sid]=el.dataset.p;render()}
   else if(act==='weak'){
@@ -1444,8 +1468,10 @@ app.addEventListener('click',function(e){
     topics(c.p,c.ci).forEach(function(t){if(act==='all'){if(!S.done[t.id])bumpDay(1);S.done[t.id]=1}else{if(S.done[t.id])bumpDay(-1);delete S.done[t.id]}});
     save();
     var box=el.closest('details');
-    box.querySelectorAll('input[data-act=tick]').forEach(function(i){i.checked=(act==='all')});
-    updateStats();markFull();
+    if(box){
+      box.querySelectorAll('input[data-act=tick]').forEach(function(i){i.checked=(act==='all')});
+      updateStats();markFull();
+    }else{render()}
   }else if(act==='addex'){addEx()}
   else if(act==='delex'){
     S.examList=S.examList.filter(function(x){return x.id!==el.dataset.id});
