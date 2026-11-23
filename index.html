@@ -521,6 +521,26 @@ body::after{width:380px;height:380px;right:-90px;bottom:-110px;background:color-
 .stat .bar{margin-top:6px;height:6px}
 .stat .bar i{background:linear-gradient(90deg,#ff7fa8,#c79bff)}
 .cont .lnk{display:block}
+
+/* ===== Studying-now status ===== */
+@keyframes nowpulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--c,var(--accent)) 60%,transparent)}100%{box-shadow:0 0 0 7px transparent}}
+.nowbtn{flex:0 0 auto;display:inline-flex;align-items:center;min-height:30px;padding:0 12px;border-radius:99px;border:1px solid var(--line);background:transparent;color:var(--muted);font-size:.76rem;font-weight:700;transition:background-color .18s var(--ease),color .18s var(--ease),border-color .18s var(--ease),transform .12s var(--ease)}
+.nowbtn:hover{border-color:var(--c,var(--accent));color:var(--fg)}
+.nowbtn.on{background:color-mix(in srgb,var(--c,var(--accent)) 20%,transparent);border-color:var(--c,var(--accent));color:var(--c,var(--accent))}
+.nowbtn:active{transform:scale(.95)}
+.nowbtn .live,.nowc .live{background:var(--c,var(--accent));animation:nowpulse 1.6s ease-out infinite}
+.nowbtn .live{margin-right:7px}
+.ch.now{box-shadow:inset 3px 0 0 var(--c,var(--accent))}
+.ch.full .nowbtn{display:none}
+.nowc .chead h2{display:flex;align-items:center}
+.nowc .rq em{font-style:normal;font-weight:800;color:var(--c);font-variant-numeric:tabular-nums}
+.nowc .rq button{justify-content:flex-start}
+.nowc .rq span{flex:1}
+
+.wcbtn{flex:0 0 auto;min-height:30px;padding:0 12px;border-radius:99px;border:1px solid var(--line);background:transparent;color:var(--muted);font-size:.76rem;font-weight:700;transition:background-color .18s var(--ease),color .18s var(--ease),border-color .18s var(--ease),transform .12s var(--ease)}
+.wcbtn:hover{border-color:#ff6b6b;color:var(--fg)}
+.wcbtn.on{background:color-mix(in srgb,#ff6b6b 20%,transparent);border-color:#ff6b6b;color:#ff6b6b}
+.wcbtn:active{transform:scale(.95)}
 </style>
 </head>
 <body>
@@ -672,6 +692,8 @@ function normalize(o){
     tasks:Array.isArray(o.tasks)?o.tasks.filter(function(x){return x&&x.id&&typeof x.t==='string'&&typeof x.date==='string'}):[],
     timer:tm,
     rev:(o.rev&&typeof o.rev==='object')?o.rev:{},
+    now:(o.now&&typeof o.now==='object')?o.now:{},
+    wch:(o.wch&&typeof o.wch==='object')?o.wch:{},
     sess:(o.sess&&typeof o.sess==='object')?o.sess:{},
     pick:typeof o.pick==='string'?o.pick:'',
     weak:(o.weak&&typeof o.weak==='object')?o.weak:{},
@@ -1019,16 +1041,31 @@ function badgesHtml(){
   });
   return h+'</div></section>';
 }
+
+function nowHtml(){
+  var list=[];
+  PAPERS.forEach(function(p){p.ch.forEach(function(c,ci){
+    var ck=p.id+'.'+ci,st=chStat(p,ci);
+    if(S.now[ck]&&!(st.t>0&&st.d===st.t))list.push({ck:ck,p:p,ci:ci,t:c[0],r:ratio(st)});
+  })});
+  if(!list.length)return '';
+  var h='<section class="card nowc"><div class="chead"><h2><i class="live"></i>Studying now</h2><span class="sub">'+list.length+(list.length===1?' chapter':' chapters')+'</span></div><ul class="rq">';
+  list.slice(0,8).forEach(function(x){
+    h+='<li class="s-'+x.p.sid+'"><button type="button" data-act="picknext" data-ck="'+x.ck+'"><i class="dot"></i><span>'+esc(x.t)+'<small>'+x.p.en+' · Chapter '+(x.ci+1)+'</small></span><em>'+x.r.toFixed(0)+'%</em></button></li>';
+  });
+  return h+'</ul></section>';
+}
 function weakListHtml(){
   var weak=[],need=[];
   PAPERS.forEach(function(p){p.ch.forEach(function(c,ci){
     var ck=p.id+'.'+ci,cs=chStat(p,ci);
+    if(S.wch[ck])weak.push({t:c[0],ck:ck,sid:p.sid,c:p.en+' · whole chapter'});
     topics(p,ci).forEach(function(t){if(S.weak[t.id])weak.push({t:t.t,ck:ck,sid:p.sid,c:c[0]})});
     if(cs.t&&cs.d===cs.t&&!(S.rev[ck]>0))need.push({ck:ck,sid:p.sid,c:c[0],p:p.en});
   })});
   var h='<section class="card"><div class="chead"><h2>Revision queue</h2></div>';
   h+='<div class="rq-h">Weak topics ('+weak.length+')</div>';
-  if(!weak.length)h+='<p class="sub rq-e">Mark hard topics with the Weak button inside any chapter.</p>';
+  if(!weak.length)h+='<p class="sub rq-e">Mark a whole chapter or a single topic as weak.</p>';
   else{h+='<ul class="rq">';weak.slice(0,8).forEach(function(x){h+='<li class="s-'+x.sid+'"><button type="button" data-act="goto" data-ck="'+x.ck+'"><i class="dot"></i><span>'+esc(x.t)+'<small>'+esc(x.c)+'</small></span></button></li>'});h+='</ul>';if(weak.length>8)h+='<p class="sub">+'+(weak.length-8)+' more</p>'}
   h+='<div class="rq-h">Needs revision ('+need.length+')</div>';
   if(!need.length)h+='<p class="sub rq-e">Finished chapters with no revision yet will show up here.</p>';
@@ -1039,23 +1076,27 @@ var filt='all';
 function chapPass(p,ci){
   if(filt==='all')return true;
   var ck=p.id+'.'+ci;
-  if(filt==='weak')return topics(p,ci).some(function(t){return S.weak[t.id]});
+  if(filt==='now')return !!S.now[ck];
+  if(filt==='weak')return !!S.wch[ck]||topics(p,ci).some(function(t){return S.weak[t.id]});
   var cs=chStat(p,ci);return cs.d>0&&!(S.rev[ck]>0);
 }
 function filtHtml(){
-  var o=[['all','All'],['weak','Weak only'],['rev','Needs revision']],h='<div class="tabs flt" role="group" aria-label="Filter chapters">';
+  var o=[['all','All'],['now','Studying'],['weak','Weak only'],['rev','Needs revision']],h='<div class="tabs flt" role="group" aria-label="Filter chapters">';
   o.forEach(function(x){h+='<button type="button" data-act="filt" data-f="'+x[0]+'" class="'+(filt===x[0]?'on':'')+'" aria-pressed="'+(filt===x[0])+'">'+x[1]+'</button>'});
   return h+'</div>';
 }
 function fullBtn(ck){
   var c=chapterOf(ck),st=chStat(c.p,c.ci),full=st.t>0&&st.d===st.t;
-  return '<button class="fullbtn'+(full?' on':'')+'" type="button" data-act="chfull" data-ck="'+ck+'" aria-pressed="'+full+'">'+(full?'Done':'Mark done')+'</button>';
+  var on=!!S.now[ck]&&!full;
+  var wc=!!S.wch[ck];
+  return '<button class="wcbtn'+(wc?' on':'')+'" type="button" data-act="chweak" data-ck="'+ck+'" aria-pressed="'+wc+'">'+(wc?'Weak':'Mark weak')+'</button><button class="nowbtn'+(on?' on':'')+'" type="button" data-act="chnow" data-ck="'+ck+'" aria-pressed="'+on+'">'+(on?'<i class="live"></i>Studying':'Studying')+'</button><button class="fullbtn'+(full?' on':'')+'" type="button" data-act="chfull" data-ck="'+ck+'" aria-pressed="'+full+'">'+(full?'Done':'Mark done')+'</button>';
 }
 function chipsHtml(p,ci){
   var ck=p.id+'.'+ci,w=0,h='';
   topics(p,ci).forEach(function(t){if(S.weak[t.id])w++});
   var r=+S.rev[ck]||0;
-  if(w)h+='<span class="chip cw">'+w+' weak</span>';
+  if(S.wch[ck])h+='<span class="chip cw">Weak chapter</span>';
+  else if(w)h+='<span class="chip cw">'+w+' weak</span>';
   if(r)h+='<span class="chip cr">'+r+'x revised</span>';
   return h;
 }
@@ -1170,6 +1211,8 @@ function renderDash(){
   }
   h+='</section>';
 
+  h+=nowHtml();
+
   /* today's plan */
   h+='<section class="card"><div class="chead"><h2>Today\'s plan</h2></div>';
   var ts=tasksToShow(),td=dkey(new Date());
@@ -1226,7 +1269,7 @@ function renderSubject(s){
     var ck=p.id+'.'+ci,k='c:'+p.id+':'+ci;
     if(!chapPass(p,ci))return;
     shown++;
-    h+='<details class="ch" data-ck="'+ck+'"'+(openSet[ck]?' open':'')+'><summary><span class="no">'+bn(ci+1)+'</span><span class="nm">'+c[0]+'</span><span class="meta">'+chipsHtml(p,ci)+fullBtn(ck)+'<span data-k="'+k+'" data-v="cnt"></span><b data-k="'+k+'" data-v="pct"></b></span><span class="bar"><i data-k="'+k+'" data-v="bar"></i></span></summary><div class="body"><ul class="tl">';
+    h+='<details class="ch'+(S.now[ck]?' now':'')+'" data-ck="'+ck+'"'+(openSet[ck]?' open':'')+'><summary><span class="no">'+bn(ci+1)+'</span><span class="nm">'+c[0]+'</span><span class="meta">'+chipsHtml(p,ci)+fullBtn(ck)+'<span data-k="'+k+'" data-v="cnt"></span><b data-k="'+k+'" data-v="pct"></b></span><span class="bar"><i data-k="'+k+'" data-v="bar"></i></span></summary><div class="body"><ul class="tl">';
     topics(p,ci).forEach(function(t){
       h+='<li><label><input type="checkbox" data-act="tick" data-id="'+t.id+'"'+(S.done[t.id]?' checked':'')+'><span>'+esc(t.t)+'</span></label>'+weakBtn(t.id,ck)+(t.custom?'<button class="x" type="button" data-act="del" data-ck="'+ck+'" data-id="'+t.id+'" aria-label="Delete topic">×</button>':'')+'</li>';
     });
@@ -1234,7 +1277,7 @@ function renderSubject(s){
     h+='<div class="bulk"><button class="btn" type="button" data-act="all" data-ck="'+ck+'">সব টিক</button><button class="btn" type="button" data-act="none" data-ck="'+ck+'">সব খালি</button></div>';
     h+='<label class="nl" for="note-'+ck+'">এই চ্যাপ্টারের নোট</label><textarea id="note-'+ck+'" data-act="note" data-ck="'+ck+'" placeholder="কী কী কঠিন লেগেছে, কী আবার দেখতে হবে...">'+esc(S.notes[ck]||'')+'</textarea></div></details>';
   });
-  if(!shown)h+='<p class="empty">'+(filt==='weak'?'No weak topics here. Mark a topic as weak inside a chapter.':'No chapters need revision right now.')+'</p>';
+  if(!shown)h+='<p class="empty">'+(filt==='now'?'No chapter is marked as studying. Press Studying on a chapter you are reading now.':filt==='weak'?'Nothing marked weak here. Press Mark weak on a chapter, or on a topic inside it.':'No chapters need revision right now.')+'</p>';
   h+='</div></div>';
   app.innerHTML=h;
 }
@@ -1309,6 +1352,11 @@ function markFull(){
     var c=chapterOf(d.dataset.ck),st=chStat(c.p,c.ci);
     var full=st.t>0&&st.d===st.t,was=d.classList.contains('full');
     d.classList.toggle('full',full);
+    if(full&&S.now[d.dataset.ck]){delete S.now[d.dataset.ck];save()}
+    var nw=!!S.now[d.dataset.ck];
+    d.classList.toggle('now',nw);
+    var nb=d.querySelector('.nowbtn');
+    if(nb){nb.classList.toggle('on',nw);nb.setAttribute('aria-pressed',nw);nb.innerHTML=nw?'<i class="live"></i>Studying':'Studying'}
     var fb=d.querySelector('.fullbtn');
     if(fb){fb.classList.toggle('on',full);fb.textContent=full?'Done':'Mark done';fb.setAttribute('aria-pressed',full)}
     if(full&&!was&&d._seen&&!RM){d.classList.remove('flash');void d.offsetWidth;d.classList.add('flash')}
@@ -1434,6 +1482,11 @@ app.addEventListener('click',function(e){
   if(act==='chfull'){var fc=chapterOf(el.dataset.ck),fs=chStat(fc.p,fc.ci);act=(fs.t>0&&fs.d===fs.t)?'none':'all'}
   if(act.indexOf('cm')===0){cmClick(el,act);return}
   if(act==='paper'){curPaper[el.dataset.sid]=el.dataset.p;render()}
+  else if(act==='chweak'){
+    var wk=el.dataset.ck;
+    if(S.wch[wk])delete S.wch[wk];else S.wch[wk]=1;
+    save();var dd0=el.closest('details');if(dd0&&dd0.open)openSet[wk]=true;render();
+  }
   else if(act==='weak'){
     if(S.weak[el.dataset.id])delete S.weak[el.dataset.id];else S.weak[el.dataset.id]=1;
     save();openSet[el.dataset.ck]=true;render();
@@ -1442,6 +1495,11 @@ app.addEventListener('click',function(e){
     if(rv<=0)delete S.rev[rk];else S.rev[rk]=Math.min(99,rv);
     save();openSet[rk]=true;render();
   }else if(act==='filt'){filt=el.dataset.f;render()}
+  else if(act==='chnow'){
+    var nk=el.dataset.ck;
+    if(S.now[nk])delete S.now[nk];else S.now[nk]=1;
+    save();markFull();
+  }
   else if(act==='exedit'){exEditId=el.dataset.id;render()}
   else if(act==='exdone'){exEditId='';render()}
   else if(act==='heatday'){heatDay=el.dataset.d;render()}
@@ -1450,7 +1508,7 @@ app.addEventListener('click',function(e){
   else if(act==='picknext'){S.pick=el.dataset.ck;save();render()}
   else if(act==='pomo'){
     var pp=S.pomo;
-    if(pp.end>0){pp.rem=pomoRem();pp.end=0}else{pp.end=Date.now()+pp.rem*1000;try{document.title='Syllabus Tracker'}catch(e){}}
+    if(pp.end>0){pp.rem=pomoRem();pp.end=0}else{pp.end=Date.now()+pp.rem*1000;if(pp.m==='f')S.now[curCk()]=1;try{document.title='Syllabus Tracker'}catch(e){}}
     save();render();
   }else if(act==='pomoskip'){pomoNext();save();render()}
   else if(act==='pomoreset'){
@@ -1485,7 +1543,7 @@ app.addEventListener('click',function(e){
     var ni=document.getElementById('nm');if(ni){ni.focus();ni.select()}
   }else if(act==='namesave'){saveName()}
   else if(act==='start'){
-    if(!S.timer){S.timer={ck:el.dataset.ck,acc:0,startedAt:Date.now()};save();render()}
+    if(!S.timer){S.timer={ck:el.dataset.ck,acc:0,startedAt:Date.now()};S.now[el.dataset.ck]=1;save();render()}
   }else if(act==='tpause'){
     if(S.timer){S.timer.acc=elapsed();S.timer.startedAt=0;save();render()}
   }else if(act==='tresume'){
