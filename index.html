@@ -394,6 +394,28 @@ body{padding:0;background:var(--bg)}
 .chip.cr{background:color-mix(in srgb,#4fd1a1 20%,transparent);color:#4fd1a1}
 @media (max-width:1100px){.duo{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:520px){.badges{grid-template-columns:repeat(2,minmax(0,1fr))}.hc i{left:4px;top:2px;font-size:.6rem}}
+
+/* ===== chapter picker + heatmap detail ===== */
+.pick{display:grid;grid-template-columns:minmax(0,1fr);gap:2px;margin:8px 0 10px}
+.sel{width:100%;min-height:44px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--fg);padding:0 12px;font:inherit;font-size:.92rem}
+.sel:disabled{opacity:.6}
+.cont h2{font-size:1.2rem}
+.lnk{margin-top:10px;background:none;border:0;color:var(--accent);font-weight:600;font-size:.85rem;padding:6px 0;min-height:36px;text-align:left}
+button.hc{border:0;padding:0;color:var(--fg);font:inherit;cursor:pointer;width:100%}
+button.hc.lv3,button.hc.lv4{color:var(--accent-ink)}
+button.hc.sel{outline:2px solid var(--fg);outline-offset:1px}
+.hnav{display:flex;align-items:center;gap:8px}
+.hnav .rb:disabled{opacity:.35;cursor:default}
+.hday{margin-top:6px;padding:14px 16px;border-radius:16px;background:var(--accent-soft);display:flex;flex-direction:column;gap:8px}
+.hd-t{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.hd-t span{color:var(--muted);font-size:.88rem}
+.hd-l{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.hd-l li{display:flex;align-items:center;gap:10px}
+.hd-l .dot{width:9px;height:9px;border-radius:50%;background:var(--c);flex:0 0 auto;display:block}
+.hd-l span{flex:1;min-width:0;display:flex;flex-direction:column;font-size:.9rem}
+.hd-l small{color:var(--muted);font-size:.74rem}
+.hd-l em{font-style:normal;font-weight:700;font-variant-numeric:tabular-nums;color:var(--c)}
+.hd-o{margin:0;font-size:.82rem}
 </style>
 </head>
 <body>
@@ -545,6 +567,8 @@ function normalize(o){
     tasks:Array.isArray(o.tasks)?o.tasks.filter(function(x){return x&&x.id&&typeof x.t==='string'&&typeof x.date==='string'}):[],
     timer:tm,
     rev:(o.rev&&typeof o.rev==='object')?o.rev:{},
+    sess:(o.sess&&typeof o.sess==='object')?o.sess:{},
+    pick:typeof o.pick==='string'?o.pick:'',
     weak:(o.weak&&typeof o.weak==='object')?o.weak:{},
     dd:(o.dd&&typeof o.dd==='object')?o.dd:{},
     pomo:(o.pomo&&typeof o.pomo==='object'&&(o.pomo.m==='f'||o.pomo.m==='b')&&+o.pomo.rem>0)?{m:o.pomo.m,end:+o.pomo.end||0,rem:+o.pomo.rem,round:Math.max(1,Math.floor(+o.pomo.round||1))}:{m:'f',end:0,rem:1500,round:1}
@@ -681,13 +705,26 @@ function greeting(){var h=new Date().getHours();return h<5?'Good night':h<12?'Go
 
 
 /* ===== New features: pomodoro, heatmap, plan, badges, revision, weak ===== */
-function addLog(sec){var k=dkey(new Date());S.log[k]=(S.log[k]||0)+sec}
+function addLog(sec,ck){
+  var k=dkey(new Date());S.log[k]=(S.log[k]||0)+sec;
+  if(ck){var d=S.sess[k]=S.sess[k]||{};d[ck]=(d[ck]||0)+sec}
+}
+function validCk(ck){
+  if(typeof ck!=='string')return false;
+  var a=ck.split('.'),p=byId(PAPERS,a[0]);
+  return !!(p&&a.length===2&&+a[1]>=0&&+a[1]<p.ch.length);
+}
+function curCk(){
+  if(validCk(S.pick))return S.pick;
+  var nx=nextChapter();
+  return nx?nx.ck:'phy1.0';
+}
 function bumpDay(n){var k=dkey(new Date());S.dd[k]=Math.max(0,(S.dd[k]||0)+n)}
 function pomoRem(){var p=S.pomo;return p.end>0?Math.max(0,Math.round((p.end-Date.now())/1000)):p.rem}
 function pomoTotal(){var p=S.pomo;return p.m==='f'?1500:(p.round%4===0?900:300)}
 function pomoNext(){
   var p=S.pomo,done=pomoTotal()-pomoRem();
-  if(p.m==='f'){if(done>=60)addLog(done);p.m='b'}else{p.m='f';p.round++}
+  if(p.m==='f'){if(done>=60)addLog(done,curCk());p.m='b'}else{p.m='f';p.round++}
   p.end=0;p.rem=pomoTotal();
 }
 function pomoTick(){
@@ -713,22 +750,43 @@ function pomoHtml(){
   var h='<section class="card pomo"><div class="chead"><span class="eyebrow">Pomodoro</span><span class="sub">Round '+(((p.round-1)%4)+1)+' of 4</span></div>';
   h+='<div class="pm-ring"><svg viewBox="0 0 100 100" aria-hidden="true"><circle class="trk" cx="50" cy="50" r="44"/><circle id="pm-a" class="arc" cx="50" cy="50" r="44" stroke-dasharray="'+PC+'" stroke-dashoffset="'+(PC*(1-r/pomoTotal()))+'"/></svg><div class="txt"><b id="pm-t">'+pad(Math.floor(r/60))+':'+pad(r%60)+'</b><span>'+(p.m==='f'?'Focus time':'Break time')+'</span></div></div>';
   h+='<div class="btns"><button class="btn big" type="button" data-act="pomo">'+(run?'Pause':'Start')+'</button><button class="btn" type="button" data-act="pomoskip">'+(p.m==='f'?'Skip':'Skip break')+'</button><button class="btn" type="button" data-act="pomoreset">Reset</button></div>';
-  h+='<p class="sub pm-note">'+(nx?'Studying: '+esc(nx.title):'Focus 25 min, break 5 min. Time is added to your study log.')+'</p></section>';
+  h+='<p class="sub pm-note">'+(function(){var c=chapterOf(curCk());return 'Studying: '+esc(c.p.ch[c.ci][0])})()+'</p></section>';
   return h;
 }
+var heatDay='',heatOff=0;
+function dayLabel(k){return new Date(k+'T00:00:00').toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'})}
+function heatDetail(key){
+  var tk=dkey(new Date()),tot=(S.log[key]||0)+(key===tk?elapsed():0),sess=S.sess[key]||{};
+  var ks=Object.keys(sess).filter(function(k){return validCk(k)&&sess[k]>0}).sort(function(a,b){return sess[b]-sess[a]});
+  var h='<div class="hday"><div class="hd-t"><b>'+dayLabel(key)+'</b><span>'+(tot>0?fmt(tot)+' studied':'No study time')+'</span></div>';
+  var sum=0;
+  if(ks.length){
+    h+='<ul class="hd-l">';
+    ks.forEach(function(k){
+      var c=chapterOf(k);sum+=sess[k];
+      h+='<li class="s-'+c.p.sid+'"><i class="dot"></i><span><b>'+esc(c.p.ch[c.ci][0])+'</b><small>'+c.p.en+' · Chapter '+(c.ci+1)+'</small></span><em>'+fmt(sess[k])+'</em></li>';
+    });
+    h+='</ul>';
+  }
+  if(tot-sum>=60)h+='<p class="sub hd-o">'+(ks.length?'Other study time: ':'No chapter was saved for this time: ')+fmt(tot-sum)+'</p>';
+  else if(!ks.length&&tot<=0)h+='<p class="sub hd-o">Nothing saved for this day. Pick a chapter above and press Start studying.</p>';
+  return h+'</div>';
+}
 function heatHtml(){
-  var n=new Date(),y=n.getFullYear(),m=n.getMonth(),dim=new Date(y,m+1,0).getDate(),off=(new Date(y,m,1).getDay()+6)%7,tk=dkey(n),tot=0;
+  var now=new Date(),n=new Date(now.getFullYear(),now.getMonth()+heatOff,1),y=n.getFullYear(),m=n.getMonth(),dim=new Date(y,m+1,0).getDate(),off=(n.getDay()+6)%7,tk=dkey(now),tot=0;
+  var sel=heatDay||tk;
   var cells='';
   for(var i=0;i<off;i++)cells+='<span class="hc blank"></span>';
   for(var d=1;d<=dim;d++){
     var key=y+'-'+pad(m+1)+'-'+pad(d),sec=(S.log[key]||0)+(key===tk?elapsed():0);
     tot+=sec;
     var lv=sec<=0?0:sec<1800?1:sec<3600?2:sec<7200?3:4;
-    cells+='<span class="hc lv'+lv+(key>tk?' fut':'')+(key===tk?' today':'')+'" title="'+key+': '+fmt(sec)+'"><i>'+d+'</i></span>';
+    cells+='<button type="button" class="hc lv'+lv+(key>tk?' fut':'')+(key===tk?' today':'')+(key===sel?' sel':'')+'" data-act="heatday" data-d="'+key+'" title="'+key+': '+fmt(sec)+'" aria-label="'+dayLabel(key)+', '+fmt(sec)+'"><i>'+d+'</i></button>';
   }
-  var h='<section class="card heat"><div class="chead"><h2>Study heatmap</h2><span class="sub">'+n.toLocaleDateString('en-US',{month:'long',year:'numeric'})+' · '+fmt(tot)+'</span></div>';
+  var h='<section class="card heat"><div class="chead"><h2>Study heatmap</h2><div class="hnav"><button type="button" class="rb" data-act="heatprev" aria-label="Previous month">&lsaquo;</button><span class="sub">'+n.toLocaleDateString('en-US',{month:'long',year:'numeric'})+' · '+fmt(tot)+'</span><button type="button" class="rb" data-act="heatnext" aria-label="Next month"'+(heatOff>=0?' disabled':'')+'>&rsaquo;</button></div></div>';
   h+='<div class="hdays"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div><div class="hgrid">'+cells+'</div>';
-  h+='<div class="hleg">Less <span class="hc lv0"></span><span class="hc lv1"></span><span class="hc lv2"></span><span class="hc lv3"></span><span class="hc lv4"></span> More</div></section>';
+  h+='<div class="hleg">Less <span class="hc lv0"></span><span class="hc lv1"></span><span class="hc lv2"></span><span class="hc lv3"></span><span class="hc lv4"></span> More</div>';
+  h+=heatDetail(sel)+'</section>';
   return h;
 }
 function planHtml(){
@@ -890,21 +948,28 @@ function renderDash(){
   h+='</div></section>';
   h+='</div><div class="col">';
 
-  /* continue studying */
-  h+='<section class="card cont"><div class="eyebrow">Continue studying · next uncompleted</div>';
-  if(nx){
-    h+='<h2>'+esc(nx.title)+'</h2><p class="sub">'+nx.p.en+' · Chapter '+(nx.ci+1)+'</p><span class="bar"><i data-k="c:'+nx.p.id+':'+nx.ci+'" data-v="bar"></i></span>';
-  }else{
-    h+='<h2>All chapters done</h2><p class="sub">Nothing left to study. Time to revise.</p>';
-  }
+  /* continue studying: choose subject + chapter */
+  var pk=chapterOf(curCk()),dis=tm?' disabled':'';
+  h+='<section class="card cont"><div class="eyebrow">What are you studying?</div>';
+  h+='<div class="pick"><label class="nl" for="pk-p">Subject</label><select class="sel" id="pk-p" data-act="pickp"'+dis+'>';
+  DATA.forEach(function(sb){
+    h+='<optgroup label="'+EN[sb.id]+'">';
+    sb.papers.forEach(function(q){h+='<option value="'+q.id+'"'+(q.id===pk.p.id?' selected':'')+'>'+q.en+'</option>'});
+    h+='</optgroup>';
+  });
+  h+='</select><label class="nl" for="pk-c">Chapter</label><select class="sel" id="pk-c" data-act="pickc"'+dis+'>';
+  pk.p.ch.forEach(function(c,ci){h+='<option value="'+ci+'"'+(ci===pk.ci?' selected':'')+'>'+(ci+1)+'. '+esc(c[0])+'</option>'});
+  h+='</select></div>';
+  h+='<h2>'+esc(pk.p.ch[pk.ci][0])+'</h2><p class="sub">'+pk.p.en+' · Chapter '+(pk.ci+1)+'</p><span class="bar"><i data-k="c:'+pk.p.id+':'+pk.ci+'" data-v="bar"></i></span>';
   if(tm){
     var running=!!(+tm.startedAt);
     var tp=chapterOf(tm.ck);
     h+='<div class="timer"><div><small>Studying: '+esc(tp.p.ch[tp.ci][0])+'</small><b id="tm">'+clock(elapsed())+'</b></div><div class="tbtns">';
     h+='<button class="btn" type="button" data-act="'+(running?'tpause':'tresume')+'">'+(running?'Pause':'Resume')+'</button>';
     h+='<button class="btn pri" type="button" data-act="tstop">Stop &amp; save</button></div></div>';
-  }else if(nx){
-    h+='<div class="btns"><button class="btn pri big" type="button" data-act="start" data-ck="'+nx.ck+'">Start studying</button><button class="btn" type="button" data-act="goto" data-ck="'+nx.ck+'">View</button></div>';
+  }else{
+    h+='<div class="btns"><button class="btn pri big" type="button" data-act="start" data-ck="'+curCk()+'">Start studying</button><button class="btn" type="button" data-act="goto" data-ck="'+curCk()+'">View</button></div>';
+    if(nx&&nx.ck!==curCk())h+='<button class="lnk" type="button" data-act="picknext" data-ck="'+nx.ck+'">Jump to next uncompleted chapter</button>';
   }
   h+='</section>';
 
@@ -1031,6 +1096,10 @@ app.addEventListener('change',function(e){
   }else if(act==='tktick'){
     var tk=byId(S.tasks,el.dataset.id);
     if(tk){tk.done=el.checked;save();render()}
+  }else if(act==='pickp'){
+    S.pick=el.value+'.0';save();render();
+  }else if(act==='pickc'){
+    var pc=chapterOf(curCk());S.pick=pc.p.id+'.'+(+el.value);save();render();
   }else if(act==='goal'){
     var v=Math.max(1,Math.min(1440,Math.floor(+el.value||0)));
     S.goalMin=v;el.value=v;save();live();
@@ -1091,6 +1160,10 @@ app.addEventListener('click',function(e){
     if(rv<=0)delete S.rev[rk];else S.rev[rk]=Math.min(99,rv);
     save();openSet[rk]=true;render();
   }else if(act==='filt'){filt=el.dataset.f;render()}
+  else if(act==='heatday'){heatDay=el.dataset.d;render()}
+  else if(act==='heatprev'){heatOff--;render()}
+  else if(act==='heatnext'){if(heatOff<0){heatOff++;render()}}
+  else if(act==='picknext'){S.pick=el.dataset.ck;save();render()}
   else if(act==='pomo'){
     var pp=S.pomo;
     if(pp.end>0){pp.rem=pomoRem();pp.end=0}else{pp.end=Date.now()+pp.rem*1000;try{document.title='Syllabus Tracker'}catch(e){}}
@@ -1098,7 +1171,7 @@ app.addEventListener('click',function(e){
   }else if(act==='pomoskip'){pomoNext();save();render()}
   else if(act==='pomoreset'){
     var pq=S.pomo,dn=pomoTotal()-pomoRem();
-    if(pq.m==='f'&&dn>=60)addLog(dn);
+    if(pq.m==='f'&&dn>=60)addLog(dn,curCk());
     pq.end=0;pq.rem=pomoTotal();save();render();
   }
   else if(act==='add'){addTopic(el.dataset.ck)}
@@ -1133,7 +1206,7 @@ app.addEventListener('click',function(e){
     if(S.timer){S.timer.startedAt=Date.now();save();render()}
   }else if(act==='tstop'){
     var sec=elapsed();
-    if(sec>0){var k=dkey(new Date());S.log[k]=(S.log[k]||0)+sec}
+    if(sec>0)addLog(sec,S.timer.ck);
     S.timer=null;save();render();
   }else if(act==='goto'){gotoChapter(el.dataset.ck)}
   else if(act==='backup'){
