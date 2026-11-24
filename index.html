@@ -596,6 +596,26 @@ body::after{width:380px;height:380px;right:-90px;bottom:-110px;background:color-
 .cm-shn{margin:-4px 4px 10px}
 .cm-r.hid{opacity:.6}
 .cm-board .cm-r.hid .cm-rk{background:none!important;color:var(--muted)!important}
+
+/* ===== Next exams card ===== */
+.stat.nx{padding:16px}
+.nx-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.nx-h .lbl{margin:0}
+.nx-m{background:none;border:0;color:var(--accent);font-weight:700;font-size:.82rem;padding:2px 0}
+.nx-l{display:flex;flex-direction:column;gap:8px}
+.nx-r{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;background:var(--accent-soft)}
+.nx-d{flex:0 0 auto;min-width:58px;text-align:center;line-height:1.1}
+.nx-d b{display:block;font-size:1.7rem;font-weight:800;font-variant-numeric:tabular-nums}
+.nx-d small{font-size:.7rem;color:var(--muted)}
+.nx-d.hot b{color:#ff6b6b}.nx-d.warm b{color:#ffb86b}.nx-d.cool b{color:var(--accent)}
+.nx-i{min-width:0;flex:1;display:flex;flex-direction:column;gap:2px}
+.nx-n{font-weight:700;font-size:.98rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nx-t{font-size:.8rem;color:var(--muted)}
+.nx-p{display:flex;align-items:center;gap:8px;margin-top:4px}
+.nx-p .bar{flex:1;margin:0;height:6px}
+.nx-p b{font-size:.82rem;color:var(--accent);font-variant-numeric:tabular-nums}
+@media (max-width:760px){.stat.nx{grid-column:1 / -1}}
+@media (max-width:760px){.stat.goalc{grid-column:1 / -1}}
 </style>
 </head>
 <body>
@@ -1240,6 +1260,22 @@ window.addEventListener('appinstalled',function(){deferredInstall=null;if(cur===
 if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){
   window.addEventListener('load',function(){try{navigator.serviceWorker.register('sw.js').catch(function(){})}catch(e){}});
 }
+
+function nextExamsHtml(){
+  var t=dkey(new Date()),tt=new Date();tt.setHours(0,0,0,0);
+  var list=S.examList.filter(function(x){return x.d&&x.d>=t}).sort(function(a,b){return a.d<b.d?-1:a.d>b.d?1:0}).slice(0,2);
+  var h='<section class="card stat nx"><div class="nx-h"><span class="lbl">Next exams</span><button class="lnk nx-m" type="button" data-act="exgo">Manage</button></div>';
+  if(!list.length)return h+'<span class="val sm">None scheduled</span><span class="cap">Add an exam in Exam Countdown below.</span></section>';
+  h+='<div class="nx-l">';
+  list.forEach(function(x){
+    var d=new Date(x.d+'T00:00:00'),n=Math.round((d-tt)/864e5);
+    var uc=(x.cks||[]).filter(validCk),r=ratio(uc.length?exStat(uc):allStat());
+    var ds=d.toLocaleDateString('en-GB',d.getFullYear()!==tt.getFullYear()?{day:'numeric',month:'long',year:'numeric'}:{day:'numeric',month:'long'});
+    var tone=n<=7?'hot':(n<=30?'warm':'cool');
+    h+='<div class="nx-r"><div class="nx-d '+tone+'"><b>'+(n===0?'Today':n)+'</b><small>'+(n===0?'exam':(n===1?'day left':'days left'))+'</small></div><div class="nx-i"><span class="nx-n">'+esc(x.n)+'</span><span class="nx-t">'+ds+'</span><span class="nx-p"><span class="bar"><i style="width:'+r+'%"></i></span><b>'+r.toFixed(0)+'%</b></span></div></div>';
+  });
+  return h+'</div></section>';
+}
 function renderDash(){
   var h='',today=new Date(),up=upcoming(),nx=nextChapter(),ac=achievement(),tm=S.timer;
   var dateTxt=today.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
@@ -1261,12 +1297,8 @@ function renderDash(){
   h+='<div class="ov"><div class="nm">Overall Progress</div><div class="cap sub" data-k="all" data-v="chof" data-en="1"></div><span class="bar"><i data-k="all" data-v="bar"></i></span><canvas class="pix" aria-hidden="true"></canvas></div></section>';
   h+='<section class="card stat">'+ico('clock')+'<span class="lbl">Study time</span><span class="val" id="st-today">0s</span><span class="cap">Today</span></section>';
   h+='<section class="card stat">'+ico('flame')+'<span class="lbl">Study streak</span><span class="val" id="st-streak">0 days</span><span class="cap">Keep it going</span></section>';
-  h+='<section class="card stat">'+ico('target')+'<span class="lbl">Today\'s goal</span><span class="val" id="st-goal">0.0%</span><span class="cap">Target <input class="goalin" type="number" min="1" max="1440" id="goal" data-act="goal" value="'+S.goalMin+'" aria-label="Daily target in minutes"> min</span></section>';
-  h+='<section class="card stat">'+ico('cal')+'<span class="lbl">Upcoming exam</span><span class="val sm">'+(up?esc(up.n):'—')+'</span><span class="cap">'+(up?left(up.d):'None scheduled')+'</span>'+(function(){
-    if(!up)return '';
-    var uc=(up.cks||[]).filter(validCk),us=uc.length?exStat(uc):allStat(),ur=ratio(us);
-    return '<span class="cap upc"><b>'+ur.toFixed(0)+'%</b> of '+(uc.length?uc.length+' chapters':'syllabus')+' done</span><span class="bar"><i style="width:'+ur+'%"></i></span>';
-  })()+'</section>';
+  h+='<section class="card stat goalc">'+ico('target')+'<span class="lbl">Today\'s goal</span><span class="val" id="st-goal">0.0%</span><span class="cap">Target <input class="goalin" type="number" min="1" max="1440" id="goal" data-act="goal" value="'+S.goalMin+'" aria-label="Daily target in minutes"> min</span></section>';
+  h+=nextExamsHtml();
   h+='</div>';
 
   /* two columns */
@@ -1341,7 +1373,7 @@ function renderDash(){
   h+='<div class="duo">'+pomoHtml()+heatHtml()+'</div>';
 
   /* exams */
-  h+='<section class="card"><div class="chead"><h2>Exam Countdown</h2></div>'+planHtml();
+  h+='<section class="card" id="examsec"><div class="chead"><h2>Exam Countdown</h2></div>'+planHtml();
   var exs=S.examList.slice().sort(function(a,b){if(!a.d&&!b.d)return 0;if(!a.d)return 1;if(!b.d)return -1;return a.d<b.d?-1:a.d>b.d?1:0});
   exs.forEach(function(x){
     h+='<div class="exitem"><div class="erow"><span class="lb">'+esc(x.n)+'<button class="x" type="button" data-act="delex" data-id="'+esc(x.id)+'" aria-label="Delete exam">×</button></span><input type="date" id="ex-'+esc(x.id)+'" data-act="exam" data-key="'+esc(x.id)+'" value="'+esc(x.d||'')+'" aria-label="Date for '+esc(x.n)+'"><span class="lf" id="lf-'+esc(x.id)+'">'+left(x.d)+'</span></div>'+exSummary(x)+'</div>';
@@ -1767,6 +1799,7 @@ app.addEventListener('click',function(e){
     if(deferredInstall){var di=deferredInstall;deferredInstall=null;el.hidden=true;di.prompt();try{di.userChoice.then(function(){})}catch(x){}}
     return;
   }
+  if(act==='exgo'){var xe=document.getElementById('examsec');if(xe)xe.scrollIntoView({behavior:RM?'auto':'smooth',block:'start'});return}
   if(act==='remtoggle'||act==='remtest'){remClick(act);return}
   if(mngClick(el,act))return;
   if(act.indexOf('cm')===0){cmClick(el,act);return}
