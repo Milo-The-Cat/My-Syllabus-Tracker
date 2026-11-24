@@ -1,6 +1,6 @@
 {
-  "name": "Syllabus Tracker",
-  "short_name": "Syllabus",
+  "name": "StudyMate",
+  "short_name": "StudyMate",
   "description": "Track your syllabus, study time and revision. Made by Azmain (DC-27).",
   "start_url": "./",
   "scope": "./",

@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Syllabus Tracker</title>
+<title>StudyMate</title>
 
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="theme-color" content="#0f1224">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Syllabus">
+<meta name="apple-mobile-web-app-title" content="StudyMate">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icon-192.png">
@@ -623,12 +623,12 @@ body::after{width:380px;height:380px;right:-90px;bottom:-110px;background:color-
 
 <div class="app">
   <aside class="side">
-    <div class="brandbox"><span class="logo lg" aria-hidden="true"><svg viewBox="0 0 512 512"><defs><linearGradient id="lgg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6d74ff"/><stop offset=".55" stop-color="#b48cff"/><stop offset="1" stop-color="#ff7fa8"/></linearGradient><linearGradient id="lg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4f46e5"/><stop offset="1" stop-color="#c026d3"/></linearGradient><linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd36b"/><stop offset="1" stop-color="#ff9a6b"/></linearGradient></defs><rect width="512" height="512" fill="url(#lgg)"/><path d="M256 214c-34-22-78-28-120-18v172c42-10 86-4 120 20 34-24 78-30 120-20V196c-42-10-86-4-120 18z" fill="#fff"/><path d="M256 214v174" stroke="#b48cff" stroke-width="10" stroke-linecap="round"/><path d="M256 96l112 50-112 50-112-50z" fill="#14122b"/><path d="M196 178v36c0 14 26 26 60 26s60-12 60-26v-36l-60 27z" fill="#14122b"/><path d="M368 146v58" stroke="#ffd36b" stroke-width="10" stroke-linecap="round"/><circle cx="368" cy="212" r="12" fill="#ffd36b"/></svg></span><span class="bt"><span class="brand">Syllabus Tracker</span><span class="byline">Made by Azmain (DC-27)</span></span></div>
+    <div class="brandbox"><span class="logo lg" aria-hidden="true"><svg viewBox="0 0 512 512"><defs><linearGradient id="lgg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6d74ff"/><stop offset=".55" stop-color="#b48cff"/><stop offset="1" stop-color="#ff7fa8"/></linearGradient><linearGradient id="lg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4f46e5"/><stop offset="1" stop-color="#c026d3"/></linearGradient><linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd36b"/><stop offset="1" stop-color="#ff9a6b"/></linearGradient></defs><rect width="512" height="512" fill="url(#lgg)"/><path d="M256 214c-34-22-78-28-120-18v172c42-10 86-4 120 20 34-24 78-30 120-20V196c-42-10-86-4-120 18z" fill="#fff"/><path d="M256 214v174" stroke="#b48cff" stroke-width="10" stroke-linecap="round"/><path d="M256 96l112 50-112 50-112-50z" fill="#14122b"/><path d="M196 178v36c0 14 26 26 60 26s60-12 60-26v-36l-60 27z" fill="#14122b"/><path d="M368 146v58" stroke="#ffd36b" stroke-width="10" stroke-linecap="round"/><circle cx="368" cy="212" r="12" fill="#ffd36b"/></svg></span><span class="bt"><span class="brand">StudyMate</span><span class="byline">Made by Azmain (DC-27)</span></span></div>
     <nav class="nav" id="nav" aria-label="Main"></nav>
     <button class="btn sidebtn" id="themeBtn" type="button">Light mode</button>
   </aside>
   <div class="mainwrap">
-    <div class="mtop"><div class="brandbox"><span class="bt"><span class="brand">Syllabus Tracker</span><span class="byline">Made by Azmain (DC-27)</span></span></div><button class="btn" id="themeBtn2" type="button" aria-label="Switch theme">Theme</button></div>
+    <div class="mtop"><div class="brandbox"><span class="bt"><span class="brand">StudyMate</span><span class="byline">Made by Azmain (DC-27)</span></span></div><button class="btn" id="themeBtn2" type="button" aria-label="Switch theme">Theme</button></div>
     <main id="app"></main>
     <footer class="foot">Made by Azmain (DC-27)</footer>
   </div>
@@ -990,7 +990,7 @@ function pomoTick(){
   var p=S.pomo;
   if(p.end>0&&pomoRem()<=0){
     pomoNext();save();
-    try{document.title='Time is up - Syllabus Tracker'}catch(e){}
+    try{document.title='Time is up - StudyMate'}catch(e){}
     if(cur==='dash')render();
     return;
   }
@@ -1830,7 +1830,7 @@ app.addEventListener('click',function(e){
   else if(act==='picknext'){S.pick=el.dataset.ck;save();render()}
   else if(act==='pomo'){
     var pp=S.pomo;
-    if(pp.end>0){pp.rem=pomoRem();pp.end=0}else{pp.end=Date.now()+pp.rem*1000;if(pp.m==='f')S.now[curCk()]=1;try{document.title='Syllabus Tracker'}catch(e){}}
+    if(pp.end>0){pp.rem=pomoRem();pp.end=0}else{pp.end=Date.now()+pp.rem*1000;if(pp.m==='f')S.now[curCk()]=1;try{document.title='StudyMate'}catch(e){}}
     save();render();
   }else if(act==='pomoskip'){pomoNext();save();render()}
   else if(act==='pomoreset'){
