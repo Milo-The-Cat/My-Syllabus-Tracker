@@ -590,6 +590,12 @@ body::after{width:380px;height:380px;right:-90px;bottom:-110px;background:color-
 .remrow .nl{margin:0}
 .remt{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:7px 12px;color:var(--fg);color-scheme:inherit}
 .remc .acts{margin:8px 0}
+
+.cm-meb{display:flex;gap:8px;flex-wrap:wrap}
+.cm-sh.on{border-color:var(--accent);color:var(--accent)}
+.cm-shn{margin:-4px 4px 10px}
+.cm-r.hid{opacity:.6}
+.cm-board .cm-r.hid .cm-rk{background:none!important;color:var(--muted)!important}
 </style>
 </head>
 <body>
@@ -745,6 +751,7 @@ function normalize(o){
     wch:(o.wch&&typeof o.wch==='object')?o.wch:{},
     rem:{on:!!(o.rem&&o.rem.on),t:(o.rem&&typeof o.rem.t==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(o.rem.t))?o.rem.t:'18:00'},
     remLast:typeof o.remLast==='string'?o.remLast:'',
+    share:o.share!==false,
     hide:(o.hide&&typeof o.hide==='object')?o.hide:{},
     cs:Array.isArray(o.cs)?o.cs.filter(function(c){return c&&typeof c.id==='string'&&/^c[a-z0-9]+$/.test(c.id)&&typeof c.name==='string'&&Array.isArray(c.papers)&&c.papers.length}).map(function(c){
       c.cls=typeof c.cls==='string'?c.cls:'';c.cc=(+c.cc>=0&&+c.cc<6)?Math.floor(+c.cc):0;
@@ -1933,7 +1940,7 @@ function cmPushStats(){
   if(!cmSb||!CM.user)return;
   var a=allStat(),wk=0,d=new Date();
   for(var i=0;i<7;i++){wk+=S.log[dkey(d)]||0;d.setDate(d.getDate()-1)}
-  var row={user_id:CM.user.id,overall_pct:+ratio(a).toFixed(2),topics_done:a.d,topics_total:a.t,today_sec:Math.floor(todaySec()),today_date:dkey(new Date()),week_sec:Math.floor(wk+elapsed()),streak:streak(),updated_at:new Date().toISOString()};
+  var row=!S.share?{user_id:CM.user.id,overall_pct:0,topics_done:0,topics_total:0,today_sec:0,today_date:dkey(new Date()),week_sec:0,streak:0,updated_at:new Date().toISOString()}:{user_id:CM.user.id,overall_pct:+ratio(a).toFixed(2),topics_done:a.d,topics_total:a.t,today_sec:Math.floor(todaySec()),today_date:dkey(new Date()),week_sec:Math.floor(wk+elapsed()),streak:streak(),updated_at:new Date().toISOString()};
   cmRun(cmSb.from('stats').upsert(row)).then(function(){
     if(cur==='community'&&CM.tab==='board'&&CM.gid)cmLoadBoard();
   }).catch(function(){});
@@ -1971,7 +1978,7 @@ function cmAuthHtml(){
   return h+'</section>';
 }
 function cmMainHtml(){
-  var h='<section class="card cm-me"><div><b>'+esc(CM.name)+'</b><span class="sub"> · signed in</span></div><button class="btn" type="button" data-act="cmout">Sign out</button></section>'+cmNote();
+  var h='<section class="card cm-me"><div><b>'+esc(CM.name)+'</b><span class="sub"> · signed in</span></div><div class="cm-meb"><button class="btn cm-sh'+(S.share?' on':'')+'" type="button" data-act="cmshare" aria-pressed="'+S.share+'">'+(S.share?'Sharing progress: On':'Sharing progress: Off')+'</button><button class="btn" type="button" data-act="cmout">Sign out</button></div></section><p class="sub cm-shn">'+(S.share?'Group members can see your progress, study time and streak.':'Your progress is hidden. Group members see you as "Progress hidden", but you can still chat.')+'</p>'+cmNote();
   h+='<section class="card"><h2>Your groups</h2>';
   if(CM.groups.length){
     h+='<div class="cm-groups">';
@@ -1996,25 +2003,32 @@ function cmBoardHtml(){
   var wkMode=CM.bm!=='all';
   var rows=CM.rows.map(function(r){
     var s=r.s||{},me=CM.user&&r.id===CM.user.id;
+    var hid=!r.s||(+s.topics_total===0);
+    if(me&&!S.share){
+      var t0=0,d0=new Date();for(var k0=0;k0<7;k0++){t0+=S.log[dkey(d0)]||0;d0.setDate(d0.getDate()-1)}
+      return {id:r.id,name:r.name||'Student',pct:ratio(allStat()),sec:todaySec(),wk:Math.floor(t0+elapsed()),st:streak(),hid:false,mehid:true};
+    }
+    if(hid)return {id:r.id,name:r.name||'Student',pct:0,sec:0,wk:0,st:0,hid:true};
     var fresh=s.updated_at&&new Date(s.updated_at)>=lim;
     var wk=me?(function(){var t=0,d=new Date();for(var k=0;k<7;k++){t+=S.log[dkey(d)]||0;d.setDate(d.getDate()-1)}return Math.floor(t+elapsed())})():(fresh?(+s.week_sec||0):0);
-    return {id:r.id,name:r.name||'Student',pct:+s.overall_pct||0,sec:(s.today_date===today)?(+s.today_sec||0):0,wk:wk,st:(s.today_date&&s.today_date>=y)?(+s.streak||0):0};
+    return {id:r.id,name:r.name||'Student',pct:+s.overall_pct||0,sec:(s.today_date===today)?(+s.today_sec||0):0,wk:wk,st:(s.today_date&&s.today_date>=y)?(+s.streak||0):0,hid:false};
   });
-  if(wkMode)rows.sort(function(a,b){return b.wk-a.wk||b.pct-a.pct});
-  else rows.sort(function(a,b){return b.pct-a.pct||b.sec-a.sec});
+  if(wkMode)rows.sort(function(a,b){return (a.hid-b.hid)||b.wk-a.wk||b.pct-a.pct});
+  else rows.sort(function(a,b){return (a.hid-b.hid)||b.pct-a.pct||b.sec-a.sec});
   var h='<div class="cm-bm"><button type="button" class="'+(wkMode?'on':'')+'" data-act="cmbm" data-bm="wk">This week</button><button type="button" class="'+(wkMode?'':'on')+'" data-act="cmbm" data-bm="all">Overall progress</button></div>';
   if(wkMode){
     var mi=-1;rows.forEach(function(r,i){if(CM.user&&r.id===CM.user.id)mi=i});
     h+='<p class="sub cm-wh">Study time over the last 7 days'+(mi>=0&&rows[0].wk>0?' · You are <b>#'+(mi+1)+'</b> of '+rows.length:'')+'</p>';
   }
-  var mx=rows.reduce(function(m,r){return Math.max(m,r.wk)},0);
+  var mx=rows.reduce(function(m,r){return r.hid?m:Math.max(m,r.wk)},0);
   h+='<div class="cm-board">';
   rows.forEach(function(r,i){
     var me=CM.user&&r.id===CM.user.id;
+    if(r.hid){h+='<div class="cm-r hid"><span class="cm-rk">–</span><span class="cm-av">'+esc(r.name.charAt(0).toUpperCase())+'</span><span class="cm-mid"><span class="cm-nm">'+esc(r.name)+'</span></span><span class="cm-pc">Hidden</span><span class="cm-sub">Progress hidden</span></div>';return}
     var bar=wkMode?(mx?Math.max(r.wk>0?3:0,r.wk*100/mx):0):Math.min(100,r.pct);
     var big=wkMode?fmt(r.wk):r.pct.toFixed(1)+'%';
     var sub=wkMode?(r.pct.toFixed(1)+'% of syllabus done · '+r.st+(r.st===1?' day':' days')+' streak'):(fmt(r.sec)+' today · '+r.st+(r.st===1?' day':' days')+' streak');
-    h+='<div class="cm-r'+(me?' me':'')+'"><span class="cm-rk">'+(i+1)+'</span><span class="cm-av">'+esc(r.name.charAt(0).toUpperCase())+'</span><span class="cm-mid"><span class="cm-nm">'+esc(r.name)+(me?' (you)':'')+'</span><span class="bar"><i style="width:'+bar+'%"></i></span></span><span class="cm-pc">'+big+'</span><span class="cm-sub">'+sub+'</span></div>';
+    h+='<div class="cm-r'+(me?' me':'')+'"><span class="cm-rk">'+(i+1)+'</span><span class="cm-av">'+esc(r.name.charAt(0).toUpperCase())+'</span><span class="cm-mid"><span class="cm-nm">'+esc(r.name)+(me?' (you)':'')+'</span><span class="bar"><i style="width:'+bar+'%"></i></span></span><span class="cm-pc">'+big+'</span><span class="cm-sub">'+(r.mehid?'Only you can see this · ':'')+sub+'</span></div>';
   });
   if(wkMode&&mx===0)h+='<p class="sub">No study time logged this week yet. Start the timer to get on the board!</p>';
   return h+'</div>';
@@ -2076,6 +2090,7 @@ function cmSend(){
 }
 function cmClick(el,act){
   if(act==='cmmode'){CM.mode=el.dataset.mode;CM.msg='';cmPaint()}
+  else if(act==='cmshare'){S.share=!S.share;save();cmPaint();cmPushStats()}
   else if(act==='cmbm'){CM.bm=el.dataset.bm;cmPaint()}
   else if(act==='cmauth'){cmAuth()}
   else if(act==='cmout'){Promise.resolve(cmSb.auth.signOut()).catch(cmFail)}
