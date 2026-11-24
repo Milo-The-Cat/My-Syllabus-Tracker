@@ -1,4 +1,4 @@
-/* Syllabus Tracker service worker: offline app shell */
+/* StudyMate service worker: offline app shell */
 var CACHE='syllabus-v1';
 var SHELL=['./','index.html','manifest.webmanifest','icon-192.png','icon-512.png'];
 self.addEventListener('install',function(e){
