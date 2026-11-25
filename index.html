@@ -681,6 +681,22 @@ body::after{width:380px;height:380px;right:-90px;bottom:-110px;background:color-
 @keyframes crownglint{0%,100%{transform:translateY(0) rotate(-4deg);filter:drop-shadow(0 0 0 #ffd36b)}50%{transform:translateY(-2px) rotate(4deg);filter:drop-shadow(0 0 7px #ffd36b)}}
 .cm-r.lead{border-color:#ffd36b}
 @media (prefers-reduced-motion:reduce){.cm-nm .crown{animation:none}.scard::after{display:none}}
+
+/* ===== admin ===== */
+.adm{max-width:1000px}
+.adst{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:12px 0}
+.adst>div{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px}
+.adst b{display:block;font-size:1.6rem}.adst span{color:var(--muted);font-size:.78rem}
+.adtb{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:14px;margin-top:12px}
+.adtb table{border-collapse:collapse;width:100%;min-width:640px}
+.adtb th,.adtb td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+.adtb th{color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em}
+.adtb tr:last-child td{border-bottom:0}
+.adb{font:inherit;font-size:.78rem;border:1px solid var(--line);background:transparent;color:var(--fg);border-radius:99px;padding:3px 11px;cursor:pointer}
+.adb.d{color:#ff6b8a;border-color:color-mix(in srgb,#ff6b8a 50%,var(--line))}
+.adb.arm{background:#ff6b8a;color:#fff;border-color:#ff6b8a}
+.admsg{display:flex;gap:10px;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line)}
+.admsg:last-child{border-bottom:0}.admsg small{color:var(--muted)}.admsg span{display:block;overflow-wrap:anywhere}
 </style>
 </head>
 <body>
@@ -1863,7 +1879,7 @@ function render(){
   var s=byId(DATA,cur);
   renderNav();
   app.classList.remove('enter');
-  if(s)renderSubject(s);else if(cur==='subjects')renderManage();else if(cur==='community')renderCommunity();else renderDash();
+  if(s)renderSubject(s);else if(cur==='admin')renderAdmin();else if(cur==='subjects')renderManage();else if(cur==='community')renderCommunity();else renderDash();
   if(ENTER&&!RM){
     var seen=[];
     app.querySelectorAll(STAG).forEach(function(n){if(seen.indexOf(n)<0)seen.push(n)});
@@ -1880,7 +1896,7 @@ function render(){
 }
 function route(){
   var h=location.hash.slice(1);
-  cur=(h&&(byId(DATA,h)||h==='community'||h==='subjects'))?h:'dash';
+  cur=(h&&(byId(DATA,h)||h==='community'||h==='subjects'||h==='admin'))?h:'dash';
   var ord=['dash'].concat(DATA.map(function(x){return x.id}),['subjects','community']);
   var oi=ord.indexOf(route._prev),ni=ord.indexOf(cur);
   app.dataset.dir=(oi<0||ni<0||oi===ni)?'0':(ni>oi?'1':'-1');
@@ -2169,6 +2185,7 @@ app.addEventListener('click',function(e){
   if(act==='remtoggle'||act==='remtest'){remClick(act);return}
   if(mngClick(el,act))return;
   if(act.indexOf('cm')===0){cmClick(el,act);return}
+  if(act.indexOf('ad')===0&&adClick(el,act))return;
   if(act==='paper'){curPaper[el.dataset.sid]=el.dataset.p;render()}
   else if(act==='chweak'){
     var wk=el.dataset.ck;
@@ -2293,6 +2310,7 @@ function cmSetUser(u){
     CM.name=(u.user_metadata&&u.user_metadata.name)||CM.name||'Student';
     cmRun(cmSb.from('profiles').upsert({id:u.id,name:CM.name})).then(function(){cmPushStats();return cmLoadGroups()}).catch(cmFail);
   }
+  AD.ok=null;if(cur==='admin')renderAdmin();
   cmPaint();
 }
 function cmLoadGroups(sel){
@@ -2345,6 +2363,87 @@ function cmPushStats(){
   }).catch(function(){});
 }
 
+
+/* ===== Admin page (#admin) — protected by Supabase policies, not by this code ===== */
+var AD={ok:null,loading:false,tab:'users',users:[],prof:{},stats:{},groups:[],mem:[],msgs:[],gsel:null,arm:null,err:''};
+function adNf(){app.innerHTML='<div class="narrow"><section class="card"><h2>Not found</h2><p class="sub">There is nothing here.</p></section></div>'}
+function adLoad(){
+  if(AD.loading)return;AD.loading=true;
+  Promise.all([
+    cmRun(cmSb.rpc('admin_users')),
+    cmRun(cmSb.from('profiles').select('id,name')),
+    cmRun(cmSb.from('stats').select('*')),
+    cmRun(cmSb.from('groups').select('*')),
+    cmRun(cmSb.from('members').select('group_id,user_id')),
+    cmRun(cmSb.from('messages').select('*').order('id',{ascending:false}).limit(400))
+  ]).then(function(a){
+    AD.users=a[0]||[];AD.prof={};(a[1]||[]).forEach(function(p){AD.prof[p.id]=p.name});
+    AD.stats={};(a[2]||[]).forEach(function(r){AD.stats[r.user_id]=r});
+    AD.groups=a[3]||[];AD.mem=a[4]||[];AD.msgs=a[5]||[];
+    if(!AD.gsel&&AD.groups.length)AD.gsel=AD.groups[0].id;
+    AD.ok=true;AD.loading=false;AD.err='';if(cur==='admin')renderAdmin();
+  }).catch(function(e){AD.loading=false;if(AD.ok===true){AD.err=(e&&e.message)||'Could not refresh.';renderAdmin()}else{AD.ok=false;if(cur==='admin')renderAdmin()}});
+}
+function renderAdmin(){
+  if(!cmSb){adNf();return}
+  if(!CM.ready){app.innerHTML='<div class="narrow"><p class="sub">Loading…</p></div>';return}
+  if(!CM.user||AD.ok===false){adNf();return}
+  if(AD.ok===null){app.innerHTML='<div class="narrow"><p class="sub">Loading…</p></div>';adLoad();return}
+  var td=dkey(new Date()),wk=Date.now()-7*864e5,nm=function(id){return AD.prof[id]||'Student'};
+  var act=0,neu=0;
+  AD.users.forEach(function(u){var st=AD.stats[u.id];if(st&&st.today_date===td)act++;if(new Date(u.created_at).getTime()>wk)neu++});
+  var h='<div class="narrow adm"><div class="subhead"><h1>Admin</h1></div>';
+  if(AD.err)h+='<p class="cm-note err">'+esc(AD.err)+'</p>';
+  h+='<div class="adst"><div><b>'+AD.users.length+'</b><span>Total users</span></div><div><b>'+act+'</b><span>Active today</span></div><div><b>'+neu+'</b><span>New this week</span></div><div><b>'+AD.groups.length+'</b><span>Groups</span></div></div>';
+  h+='<div class="cm-tabs">'+[['users','Users'],['groups','Groups'],['chats','Chats']].map(function(t){return '<button type="button" class="'+(AD.tab===t[0]?'on':'')+'" data-act="adtab" data-tab="'+t[0]+'">'+t[1]+'</button>'}).join('')+'<button type="button" data-act="adref">Refresh</button></div>';
+  function btn(label,a,id,extra){var armed=AD.arm===a+':'+id;return '<button type="button" class="adb d'+(armed?' arm':'')+'" data-act="'+a+'" data-id="'+esc(id)+'"'+(extra||'')+'>'+(armed?'Sure?':label)+'</button>'}
+  if(AD.tab==='users'){
+    h+='<div class="adtb"><table><tr><th>Name</th><th>Email</th><th>Progress</th><th>Today</th><th>Streak</th><th>Last seen</th><th>Sharing</th><th></th></tr>';
+    AD.users.slice().sort(function(a,b){return new Date(b.last_sign_in_at||b.created_at)-new Date(a.last_sign_in_at||a.created_at)}).forEach(function(u){
+      var st=AD.stats[u.id]||{},seen=st.updated_at||u.last_sign_in_at,days=seen?Math.floor((Date.now()-new Date(seen))/864e5):null;
+      var me=CM.user&&u.id===CM.user.id;
+      h+='<tr><td>'+esc(nm(u.id))+(me?' (you)':'')+'</td><td>'+esc(u.email||'')+'</td><td>'+(st.overall_pct!=null?(+st.overall_pct).toFixed(1)+'%':'–')+'</td><td>'+(st.today_date===td?fmt(+st.today_sec||0):'0m')+'</td><td>'+(+st.streak||0)+'</td><td>'+(days===null?'–':days===0?'Today':days+' d ago')+'</td><td>'+(st.topics_total==null?'–':(+st.topics_total>0?'On':'Off'))+'</td><td>'+(me?'':btn('Remove','adrmuser',u.id))+'</td></tr>';
+    });
+    h+='</table></div>';
+  }else if(AD.tab==='groups'){
+    h+='<div class="adtb"><table><tr><th>Group</th><th>Code</th><th>Members</th><th></th></tr>';
+    AD.groups.forEach(function(g){var c=AD.mem.filter(function(m){return m.group_id===g.id}).length;
+      h+='<tr><td>'+esc(g.name)+'</td><td>'+esc(g.code||'')+'</td><td>'+c+'</td><td>'+btn('Delete group','adrmgrp',g.id)+'</td></tr>'});
+    if(!AD.groups.length)h+='<tr><td colspan="4">No groups yet.</td></tr>';
+    h+='</table></div>';
+  }else{
+    h+='<div class="cm-groups">'+AD.groups.map(function(g){return '<button type="button" class="cm-g'+(g.id===AD.gsel?' on':'')+'" data-act="adgsel" data-id="'+esc(g.id)+'">'+esc(g.name)+'</button>'}).join('')+'</div>';
+    if(AD.gsel){
+      var ms=AD.mem.filter(function(m){return m.group_id===AD.gsel});
+      h+='<p class="sub">Members: '+ms.map(function(m){return esc(nm(m.user_id))+' <button type="button" class="adb d'+(AD.arm==='admem:'+m.user_id?' arm':'')+'" data-act="admem" data-id="'+esc(m.user_id)+'">'+(AD.arm==='admem:'+m.user_id?'Sure?':'Remove')+'</button>'}).join(' · ')+'</p>';
+      var list=AD.msgs.filter(function(m){return m.group_id===AD.gsel}).slice().reverse();
+      h+='<div class="adtb">';
+      list.forEach(function(m){var d=new Date(m.created_at);
+        h+='<div class="admsg"><div><b>'+esc(nm(m.user_id))+'</b> <small>'+d.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' '+pad(d.getHours())+':'+pad(d.getMinutes())+'</small><span>'+esc(m.body)+'</span></div>'+btn('Delete','admsg',String(m.id))+'</div>'});
+      if(!list.length)h+='<p class="sub" style="padding:12px">No messages in this group.</p>';
+      h+='</div>';
+    }else h+='<p class="sub">No groups yet.</p>';
+  }
+  app.innerHTML=h+'</div>';
+}
+function adClick(el,a){
+  var id=el.dataset.id;
+  if(a==='adtab'){AD.tab=el.dataset.tab;AD.arm=null;renderAdmin();return true}
+  if(a==='adref'){AD.ok=null;AD.loading=false;renderAdmin();return true}
+  if(a==='adgsel'){AD.gsel=id;AD.arm=null;renderAdmin();return true}
+  if(a==='adrmuser'||a==='adrmgrp'||a==='admsg'||a==='admem'){
+    var key=a+':'+id;
+    if(AD.arm!==key){AD.arm=key;renderAdmin();return true}
+    AD.arm=null;var sb=cmSb,p;
+    if(a==='adrmuser')p=sb.rpc('admin_delete_user',{uid:id});
+    else if(a==='adrmgrp')p=sb.rpc('admin_delete_group',{gid:id});
+    else if(a==='admsg')p=sb.from('messages').delete().eq('id',id);
+    else p=sb.from('members').delete().eq('group_id',AD.gsel).eq('user_id',id);
+    cmRun(p).then(function(){AD.ok=null;AD.loading=false;renderAdmin()}).catch(function(e){AD.err=(e&&e.message)||'Failed.';renderAdmin()});
+    return true;
+  }
+  return false;
+}
 function renderCommunity(){
   cmPaint();
   if(cmSb&&CM.user)cmPushStats();
