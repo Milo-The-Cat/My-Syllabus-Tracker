@@ -2000,6 +2000,7 @@ function saveName(){
 app.addEventListener('keydown',function(e){
   var ds=e.target.dataset||{};
   if(e.key!=='Enter')return;
+  if(ds.act==='adin'){e.preventDefault();adSignIn();return}
   if(ds.act&&ds.act.indexOf('cm')===0){e.preventDefault();cmKey(ds.act);return}
   if(ds.act==='addin'){e.preventDefault();addTopic(ds.ck)}
   else if(ds.act==='exin'){e.preventDefault();addEx()}
@@ -2365,7 +2366,21 @@ function cmPushStats(){
 
 
 /* ===== Admin page (#admin) — protected by Supabase policies, not by this code ===== */
-var AD={ok:null,loading:false,tab:'users',users:[],prof:{},stats:{},groups:[],mem:[],msgs:[],gsel:null,arm:null,err:''};
+var AD={lmsg:'',lbusy:false,ok:null,loading:false,tab:'users',users:[],prof:{},stats:{},groups:[],mem:[],msgs:[],gsel:null,arm:null,err:''};
+function adLogin(){
+  var e0=(document.getElementById('ad-email')||{}).value||'';
+  app.innerHTML='<div class="narrow"><section class="card cm-auth"><h2>Admin sign in</h2><label class="cm-l" for="ad-email">Email</label><input class="cm-in" id="ad-email" type="email" autocomplete="email" data-act="adin" placeholder="you@example.com"><label class="cm-l" for="ad-pass">Password</label><input class="cm-in" id="ad-pass" type="password" autocomplete="current-password" data-act="adin" placeholder="Password">'+(AD.lmsg?'<p class="cm-note err" role="status">'+esc(AD.lmsg)+'</p>':'')+'<button class="btn pri" type="button" data-act="adlogin"'+(AD.lbusy?' disabled':'')+'>'+(AD.lbusy?'Signing in…':'Sign in')+'</button></section></div>';
+  var em=document.getElementById('ad-email');if(em)em.value=e0;
+}
+function adSignIn(){
+  var em=(document.getElementById('ad-email')||{}).value||'',pw=(document.getElementById('ad-pass')||{}).value||'';
+  em=em.trim();if(!em||!pw){AD.lmsg='Enter your email and password.';adLogin();return}
+  AD.lbusy=true;AD.lmsg='';adLogin();
+  Promise.resolve(cmSb.auth.signInWithPassword({email:em,password:pw})).then(function(r){
+    AD.lbusy=false;
+    if(r&&r.error){AD.lmsg=r.error.message||'Could not sign in.';if(cur==='admin')adLogin()}
+  }).catch(function(e){AD.lbusy=false;AD.lmsg=(e&&e.message)||'Could not sign in.';if(cur==='admin')adLogin()});
+}
 function adNf(){app.innerHTML='<div class="narrow"><section class="card"><h2>Not found</h2><p class="sub">There is nothing here.</p></section></div>'}
 function adLoad(){
   if(AD.loading)return;AD.loading=true;
@@ -2387,7 +2402,8 @@ function adLoad(){
 function renderAdmin(){
   if(!cmSb){adNf();return}
   if(!CM.ready){app.innerHTML='<div class="narrow"><p class="sub">Loading…</p></div>';return}
-  if(!CM.user||AD.ok===false){adNf();return}
+  if(!CM.user){adLogin();return}
+  if(AD.ok===false){adNf();return}
   if(AD.ok===null){app.innerHTML='<div class="narrow"><p class="sub">Loading…</p></div>';adLoad();return}
   var td=dkey(new Date()),wk=Date.now()-7*864e5,nm=function(id){return AD.prof[id]||'Student'};
   var act=0,neu=0;
@@ -2395,7 +2411,7 @@ function renderAdmin(){
   var h='<div class="narrow adm"><div class="subhead"><h1>Admin</h1></div>';
   if(AD.err)h+='<p class="cm-note err">'+esc(AD.err)+'</p>';
   h+='<div class="adst"><div><b>'+AD.users.length+'</b><span>Total users</span></div><div><b>'+act+'</b><span>Active today</span></div><div><b>'+neu+'</b><span>New this week</span></div><div><b>'+AD.groups.length+'</b><span>Groups</span></div></div>';
-  h+='<div class="cm-tabs">'+[['users','Users'],['groups','Groups'],['chats','Chats']].map(function(t){return '<button type="button" class="'+(AD.tab===t[0]?'on':'')+'" data-act="adtab" data-tab="'+t[0]+'">'+t[1]+'</button>'}).join('')+'<button type="button" data-act="adref">Refresh</button></div>';
+  h+='<div class="cm-tabs">'+[['users','Users'],['groups','Groups'],['chats','Chats']].map(function(t){return '<button type="button" class="'+(AD.tab===t[0]?'on':'')+'" data-act="adtab" data-tab="'+t[0]+'">'+t[1]+'</button>'}).join('')+'<button type="button" data-act="adref">Refresh</button><button type="button" data-act="adout">Sign out</button></div>';
   function btn(label,a,id,extra){var armed=AD.arm===a+':'+id;return '<button type="button" class="adb d'+(armed?' arm':'')+'" data-act="'+a+'" data-id="'+esc(id)+'"'+(extra||'')+'>'+(armed?'Sure?':label)+'</button>'}
   if(AD.tab==='users'){
     h+='<div class="adtb"><table><tr><th>Name</th><th>Email</th><th>Progress</th><th>Today</th><th>Streak</th><th>Last seen</th><th>Sharing</th><th></th></tr>';
@@ -2428,6 +2444,8 @@ function renderAdmin(){
 }
 function adClick(el,a){
   var id=el.dataset.id;
+  if(a==='adlogin'){adSignIn();return true}
+  if(a==='adout'){Promise.resolve(cmSb.auth.signOut()).catch(cmFail);return true}
   if(a==='adtab'){AD.tab=el.dataset.tab;AD.arm=null;renderAdmin();return true}
   if(a==='adref'){AD.ok=null;AD.loading=false;renderAdmin();return true}
   if(a==='adgsel'){AD.gsel=id;AD.arm=null;renderAdmin();return true}
