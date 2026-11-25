@@ -2001,6 +2001,7 @@ app.addEventListener('keydown',function(e){
   var ds=e.target.dataset||{};
   if(e.key!=='Enter')return;
   if(ds.act==='adin'){e.preventDefault();adSignIn();return}
+  if(ds.act==='adpwin'){e.preventDefault();adSetPw();return}
   if(ds.act&&ds.act.indexOf('cm')===0){e.preventDefault();cmKey(ds.act);return}
   if(ds.act==='addin'){e.preventDefault();addTopic(ds.ck)}
   else if(ds.act==='exin'){e.preventDefault();addEx()}
@@ -2281,7 +2282,7 @@ app.addEventListener('click',function(e){
 var SB_URL='https://oimeinixlxhcrsjhzhed.supabase.co';   /* paste your Supabase Project URL between the quotes */
 var SB_KEY='sb_publishable_9A8ZW681g4q_gcyA5-rKjw_QRIJLMWv';   /* paste your Supabase anon public key between the quotes */
 var cmSb=null;
-var CM={ready:false,user:null,name:'Student',mode:'in',msg:'',err:false,busy:false,arm:false,groups:[],gid:null,tab:'board',bm:'wk',rows:[],msgs:[],names:{},ch:null};
+var CM={pw:false,ready:false,user:null,name:'Student',mode:'in',msg:'',err:false,busy:false,arm:false,groups:[],gid:null,tab:'board',bm:'wk',rows:[],msgs:[],names:{},ch:null};
 
 function cmRun(b){return Promise.resolve(b).then(function(r){if(r&&r.error)throw r.error;return r?r.data:null})}
 function cmMsg(t,isErr){CM.msg=t||'';CM.err=!!isErr;cmPaint()}
@@ -2366,11 +2367,17 @@ function cmPushStats(){
 
 
 /* ===== Admin page (#admin) — protected by Supabase policies, not by this code ===== */
-var AD={lmsg:'',lbusy:false,ok:null,loading:false,tab:'users',users:[],prof:{},stats:{},groups:[],mem:[],msgs:[],gsel:null,arm:null,err:''};
+var AD={rp:null,ok2:'',lmsg:'',lbusy:false,ok:null,loading:false,tab:'users',users:[],prof:{},stats:{},groups:[],mem:[],msgs:[],gsel:null,arm:null,err:''};
 function adLogin(){
   var e0=(document.getElementById('ad-email')||{}).value||'';
   app.innerHTML='<div class="narrow"><section class="card cm-auth"><h2>Admin sign in</h2><label class="cm-l" for="ad-email">Email</label><input class="cm-in" id="ad-email" type="email" autocomplete="email" data-act="adin" placeholder="you@example.com"><label class="cm-l" for="ad-pass">Password</label><input class="cm-in" id="ad-pass" type="password" autocomplete="current-password" data-act="adin" placeholder="Password">'+(AD.lmsg?'<p class="cm-note err" role="status">'+esc(AD.lmsg)+'</p>':'')+'<button class="btn pri" type="button" data-act="adlogin"'+(AD.lbusy?' disabled':'')+'>'+(AD.lbusy?'Signing in…':'Sign in')+'</button></section></div>';
   var em=document.getElementById('ad-email');if(em)em.value=e0;
+}
+function adSetPw(){
+  var pw=(document.getElementById('ad-np')||{}).value||'';
+  if(pw.length<6){AD.err='The password must be at least 6 characters.';var v=pw;renderAdmin();var f=document.getElementById('ad-np');if(f)f.value=v;return}
+  var id=AD.rp;AD.err='';
+  cmRun(cmSb.rpc('admin_set_password',{uid:id,pw:pw})).then(function(){AD.rp=null;AD.ok2='Password updated for '+(AD.prof[id]||'the user')+'. Tell them the new password.';renderAdmin()}).catch(function(e){AD.err=(e&&e.message)||'Failed.';renderAdmin()});
 }
 function adSignIn(){
   var em=(document.getElementById('ad-email')||{}).value||'',pw=(document.getElementById('ad-pass')||{}).value||'';
@@ -2418,9 +2425,11 @@ function renderAdmin(){
     AD.users.slice().sort(function(a,b){return new Date(b.last_sign_in_at||b.created_at)-new Date(a.last_sign_in_at||a.created_at)}).forEach(function(u){
       var st=AD.stats[u.id]||{},seen=st.updated_at||u.last_sign_in_at,days=seen?Math.floor((Date.now()-new Date(seen))/864e5):null;
       var me=CM.user&&u.id===CM.user.id;
-      h+='<tr><td>'+esc(nm(u.id))+(me?' (you)':'')+'</td><td>'+esc(u.email||'')+'</td><td>'+(st.overall_pct!=null?(+st.overall_pct).toFixed(1)+'%':'–')+'</td><td>'+(st.today_date===td?fmt(+st.today_sec||0):'0m')+'</td><td>'+(+st.streak||0)+'</td><td>'+(days===null?'–':days===0?'Today':days+' d ago')+'</td><td>'+(st.topics_total==null?'–':(+st.topics_total>0?'On':'Off'))+'</td><td>'+(me?'':btn('Remove','adrmuser',u.id))+'</td></tr>';
+      h+='<tr><td>'+esc(nm(u.id))+(me?' (you)':'')+'</td><td>'+esc(u.email||'')+'</td><td>'+(st.overall_pct!=null?(+st.overall_pct).toFixed(1)+'%':'–')+'</td><td>'+(st.today_date===td?fmt(+st.today_sec||0):'0m')+'</td><td>'+(+st.streak||0)+'</td><td>'+(days===null?'–':days===0?'Today':days+' d ago')+'</td><td>'+(st.topics_total==null?'–':(+st.topics_total>0?'On':'Off'))+'</td><td>'+(me?'':'<button type="button" class="adb" data-act="adpw" data-id="'+esc(u.id)+'">Reset password</button> '+btn('Remove','adrmuser',u.id))+'</td></tr>';
     });
     h+='</table></div>';
+    if(AD.rp){h+='<section class="card adpw"><h2>New password for '+esc(nm(AD.rp))+'</h2><label class="cm-l" for="ad-np">New password</label><input class="cm-in" id="ad-np" type="text" autocomplete="off" data-act="adpwin" placeholder="At least 6 characters"><div class="cm-row"><button class="btn pri" type="button" data-act="adpwset">Set password</button><button class="btn" type="button" data-act="adpw" data-id="">Cancel</button></div><p class="sub">Tell the user this password. They can change it themselves from the Community page.</p></section>'}
+    if(AD.ok2)h+='<p class="cm-note ok" role="status">'+esc(AD.ok2)+'</p>';
   }else if(AD.tab==='groups'){
     h+='<div class="adtb"><table><tr><th>Group</th><th>Code</th><th>Members</th><th></th></tr>';
     AD.groups.forEach(function(g){var c=AD.mem.filter(function(m){return m.group_id===g.id}).length;
@@ -2444,6 +2453,8 @@ function renderAdmin(){
 }
 function adClick(el,a){
   var id=el.dataset.id;
+  if(a==='adpw'){AD.rp=id||null;AD.ok2='';AD.err='';renderAdmin();var f=document.getElementById('ad-np');if(f)f.focus();return true}
+  if(a==='adpwset'){adSetPw();return true}
   if(a==='adlogin'){adSignIn();return true}
   if(a==='adout'){Promise.resolve(cmSb.auth.signOut()).catch(cmFail);return true}
   if(a==='adtab'){AD.tab=el.dataset.tab;AD.arm=null;renderAdmin();return true}
@@ -2508,7 +2519,7 @@ function cmAuthHtml(){
   return h+'</section>';
 }
 function cmMainHtml(){
-  var h='<section class="card cm-me"><div><b>'+esc(CM.name)+'</b><span class="sub"> · signed in</span></div><div class="cm-meb"><button class="btn cm-sh'+(S.share?' on':'')+'" type="button" data-act="cmshare" aria-pressed="'+S.share+'">'+(S.share?'Sharing progress: On':'Sharing progress: Off')+'</button><button class="btn" type="button" data-act="cmout">Sign out</button></div></section><p class="sub cm-shn">'+(S.share?'Group members can see your progress, study time and streak.':'Your progress is hidden. Group members see you as "Progress hidden", but you can still chat.')+'</p>'+cmNote();
+  var h='<section class="card cm-me"><div><b>'+esc(CM.name)+'</b><span class="sub"> · signed in</span></div><div class="cm-meb"><button class="btn cm-sh'+(S.share?' on':'')+'" type="button" data-act="cmshare" aria-pressed="'+S.share+'">'+(S.share?'Sharing progress: On':'Sharing progress: Off')+'</button><button class="btn" type="button" data-act="cmpw">Change password</button><button class="btn" type="button" data-act="cmout">Sign out</button></div></section>'+(CM.pw?'<section class="card cm-pw"><h2>Change password</h2><label class="cm-l" for="cm-np">New password</label><input class="cm-in" id="cm-np" type="password" autocomplete="new-password" data-act="cmpwin" placeholder="At least 6 characters"><label class="cm-l" for="cm-np2">Repeat new password</label><input class="cm-in" id="cm-np2" type="password" autocomplete="new-password" data-act="cmpwin" placeholder="Type it again"><div class="cm-row"><button class="btn pri" type="button" data-act="cmpwsave"'+(CM.busy?' disabled':'')+'>Save password</button><button class="btn" type="button" data-act="cmpw">Cancel</button></div></section>':'')+'<p class="sub cm-shn">'+(S.share?'Group members can see your progress, study time and streak.':'Your progress is hidden. Group members see you as "Progress hidden", but you can still chat.')+'</p>'+cmNote();
   h+='<section class="card"><h2>Your groups</h2>';
   if(CM.groups.length){
     h+='<div class="cm-groups">';
@@ -2633,13 +2644,23 @@ function cmClick(el,act){
     var code=el.dataset.code;
     try{navigator.clipboard.writeText(code).then(function(){cmMsg('Invite code copied.')},function(){cmMsg('Could not copy. Select the code and copy it by hand.',true)})}
     catch(err){cmMsg('Could not copy. Select the code and copy it by hand.',true)}
+  }else if(act==='cmpw'){CM.pw=!CM.pw;CM.msg='';cmPaint()
+  }else if(act==='cmpwsave'){cmPwSave()
   }else if(act==='cmleave'){
     if(!CM.arm){CM.arm=true;cmPaint();setTimeout(function(){CM.arm=false;cmPaint()},4000);return}
     CM.arm=false;
     cmRun(cmSb.from('members').delete().eq('group_id',CM.gid).eq('user_id',CM.user.id)).then(function(){CM.gid=null;return cmLoadGroups()}).catch(cmFail);
   }
 }
+function cmPwSave(){
+  var a=cmVal('cm-np'),b=cmVal('cm-np2');
+  if(a.length<6)return cmMsg('The password must be at least 6 characters.',true);
+  if(a!==b)return cmMsg('The two passwords do not match.',true);
+  CM.busy=true;cmMsg('');
+  cmRun(cmSb.auth.updateUser({password:a})).then(function(){CM.busy=false;CM.pw=false;cmMsg('Password changed.')}).catch(cmFail);
+}
 function cmKey(act){
+  if(act==='cmpwin'){cmPwSave();return}
   if(act==='cmauthin')cmAuth();
   else if(act==='cmcreatein')cmCreate();
   else if(act==='cmjoinin')cmJoin();
