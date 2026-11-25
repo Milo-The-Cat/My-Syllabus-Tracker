@@ -1329,6 +1329,7 @@ function renderNav(){
   h+='<a href="#subjects" class="'+(cur==='subjects'?'on':'')+'"><svg class="ni" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span class="nt">Add / hide</span></a>';
   h+='<div class="grp">Together</div>';
   h+='<a href="#community" class="'+(cur==='community'?'on':'')+'"><svg class="ni" viewBox="0 0 24 24" aria-hidden="true">'+NI.com+'</svg><span class="nt">Community</span></a>';
+  if(CM.isAdmin)h+='<a href="#admin" class="'+(cur==='admin'?'on':'')+'"><svg class="ni" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg><span class="nt">Admin</span></a>';
   nav.innerHTML=h;
 }
 
@@ -2282,7 +2283,7 @@ app.addEventListener('click',function(e){
 var SB_URL='https://oimeinixlxhcrsjhzhed.supabase.co';   /* paste your Supabase Project URL between the quotes */
 var SB_KEY='sb_publishable_9A8ZW681g4q_gcyA5-rKjw_QRIJLMWv';   /* paste your Supabase anon public key between the quotes */
 var cmSb=null;
-var CM={pw:false,ready:false,user:null,name:'Student',mode:'in',msg:'',err:false,busy:false,arm:false,groups:[],gid:null,tab:'board',bm:'wk',rows:[],msgs:[],names:{},ch:null};
+var CM={isAdmin:false,pw:false,ready:false,user:null,name:'Student',mode:'in',msg:'',err:false,busy:false,arm:false,groups:[],gid:null,tab:'board',bm:'wk',rows:[],msgs:[],names:{},ch:null};
 
 function cmRun(b){return Promise.resolve(b).then(function(r){if(r&&r.error)throw r.error;return r?r.data:null})}
 function cmMsg(t,isErr){CM.msg=t||'';CM.err=!!isErr;cmPaint()}
@@ -2313,6 +2314,8 @@ function cmSetUser(u){
     cmRun(cmSb.from('profiles').upsert({id:u.id,name:CM.name})).then(function(){cmPushStats();return cmLoadGroups()}).catch(cmFail);
   }
   AD.ok=null;if(cur==='admin')renderAdmin();
+  CM.isAdmin=false;renderNav();updateStats();
+  if(u&&cmSb){cmRun(cmSb.rpc('is_admin')).then(function(r){var v=(r===true);if(v!==CM.isAdmin){CM.isAdmin=v;renderNav();updateStats()}}).catch(function(){})}
   cmPaint();
 }
 function cmLoadGroups(sel){
@@ -2367,7 +2370,7 @@ function cmPushStats(){
 
 
 /* ===== Admin page (#admin) — protected by Supabase policies, not by this code ===== */
-var AD={rp:null,ok2:'',lmsg:'',lbusy:false,ok:null,loading:false,tab:'users',users:[],prof:{},stats:{},groups:[],mem:[],msgs:[],gsel:null,arm:null,err:''};
+var AD={adm:null,rp:null,ok2:'',lmsg:'',lbusy:false,ok:null,loading:false,tab:'users',users:[],prof:{},stats:{},groups:[],mem:[],msgs:[],gsel:null,arm:null,err:''};
 function adLogin(){
   var e0=(document.getElementById('ad-email')||{}).value||'';
   app.innerHTML='<div class="narrow"><section class="card cm-auth"><h2>Admin sign in</h2><label class="cm-l" for="ad-email">Email</label><input class="cm-in" id="ad-email" type="email" autocomplete="email" data-act="adin" placeholder="you@example.com"><label class="cm-l" for="ad-pass">Password</label><input class="cm-in" id="ad-pass" type="password" autocomplete="current-password" data-act="adin" placeholder="Password">'+(AD.lmsg?'<p class="cm-note err" role="status">'+esc(AD.lmsg)+'</p>':'')+'<button class="btn pri" type="button" data-act="adlogin"'+(AD.lbusy?' disabled':'')+'>'+(AD.lbusy?'Signing in…':'Sign in')+'</button></section></div>';
@@ -2397,8 +2400,10 @@ function adLoad(){
     cmRun(cmSb.from('stats').select('*')),
     cmRun(cmSb.from('groups').select('*')),
     cmRun(cmSb.from('members').select('group_id,user_id')),
-    cmRun(cmSb.from('messages').select('*').order('id',{ascending:false}).limit(400))
+    cmRun(cmSb.from('messages').select('*').order('id',{ascending:false}).limit(400)),
+    Promise.resolve(cmRun(cmSb.from('admins').select('user_id'))).catch(function(){return null})
   ]).then(function(a){
+    AD.adm=null;if(a[6]){AD.adm={};a[6].forEach(function(r){AD.adm[r.user_id]=1})}
     AD.users=a[0]||[];AD.prof={};(a[1]||[]).forEach(function(p){AD.prof[p.id]=p.name});
     AD.stats={};(a[2]||[]).forEach(function(r){AD.stats[r.user_id]=r});
     AD.groups=a[3]||[];AD.mem=a[4]||[];AD.msgs=a[5]||[];
@@ -2425,7 +2430,7 @@ function renderAdmin(){
     AD.users.slice().sort(function(a,b){return new Date(b.last_sign_in_at||b.created_at)-new Date(a.last_sign_in_at||a.created_at)}).forEach(function(u){
       var st=AD.stats[u.id]||{},seen=st.updated_at||u.last_sign_in_at,days=seen?Math.floor((Date.now()-new Date(seen))/864e5):null;
       var me=CM.user&&u.id===CM.user.id;
-      h+='<tr><td>'+esc(nm(u.id))+(me?' (you)':'')+'</td><td>'+esc(u.email||'')+'</td><td>'+(st.overall_pct!=null?(+st.overall_pct).toFixed(1)+'%':'–')+'</td><td>'+(st.today_date===td?fmt(+st.today_sec||0):'0m')+'</td><td>'+(+st.streak||0)+'</td><td>'+(days===null?'–':days===0?'Today':days+' d ago')+'</td><td>'+(st.topics_total==null?'–':(+st.topics_total>0?'On':'Off'))+'</td><td>'+(me?'':'<button type="button" class="adb" data-act="adpw" data-id="'+esc(u.id)+'">Reset password</button> '+btn('Remove','adrmuser',u.id))+'</td></tr>';
+      h+='<tr><td>'+esc(nm(u.id))+(me?' (you)':'')+(AD.adm&&AD.adm[u.id]?' <small class="sub">· admin</small>':'')+'</td><td>'+esc(u.email||'')+'</td><td>'+(st.overall_pct!=null?(+st.overall_pct).toFixed(1)+'%':'–')+'</td><td>'+(st.today_date===td?fmt(+st.today_sec||0):'0m')+'</td><td>'+(+st.streak||0)+'</td><td>'+(days===null?'–':days===0?'Today':days+' d ago')+'</td><td>'+(st.topics_total==null?'–':(+st.topics_total>0?'On':'Off'))+'</td><td>'+(me?'':(AD.adm?'<button type="button" class="adb'+(AD.arm==='adrole:'+u.id?' d arm':'')+'" data-act="adrole" data-id="'+esc(u.id)+'">'+(AD.arm==='adrole:'+u.id?'Sure?':(AD.adm[u.id]?'Remove admin':'Make admin'))+'</button> ':'')+'<button type="button" class="adb" data-act="adpw" data-id="'+esc(u.id)+'">Reset password</button> '+btn('Remove','adrmuser',u.id))+'</td></tr>';
     });
     h+='</table></div>';
     if(AD.rp){h+='<section class="card adpw"><h2>New password for '+esc(nm(AD.rp))+'</h2><label class="cm-l" for="ad-np">New password</label><input class="cm-in" id="ad-np" type="text" autocomplete="off" data-act="adpwin" placeholder="At least 6 characters"><div class="cm-row"><button class="btn pri" type="button" data-act="adpwset">Set password</button><button class="btn" type="button" data-act="adpw" data-id="">Cancel</button></div><p class="sub">Tell the user this password. They can change it themselves from the Community page.</p></section>'}
@@ -2453,6 +2458,13 @@ function renderAdmin(){
 }
 function adClick(el,a){
   var id=el.dataset.id;
+  if(a==='adrole'){
+    var rk='adrole:'+id;
+    if(AD.arm!==rk){AD.arm=rk;renderAdmin();return true}
+    AD.arm=null;
+    cmRun(cmSb.rpc('admin_set_admin',{uid:id,make:!(AD.adm&&AD.adm[id])})).then(function(){AD.ok=null;AD.loading=false;renderAdmin()}).catch(function(e){AD.err=(e&&e.message)||'Failed.';renderAdmin()});
+    return true;
+  }
   if(a==='adpw'){AD.rp=id||null;AD.ok2='';AD.err='';renderAdmin();var f=document.getElementById('ad-np');if(f)f.focus();return true}
   if(a==='adpwset'){adSetPw();return true}
   if(a==='adlogin'){adSignIn();return true}
