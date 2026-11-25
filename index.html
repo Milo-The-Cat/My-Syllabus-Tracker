@@ -2566,7 +2566,7 @@ function cmBoardHtml(){
   rows.forEach(function(r,i){
     var me=CM.user&&r.id===CM.user.id;
     if(r.hid){h+='<div class="cm-r hid"><span class="cm-rk">–</span><span class="cm-av">'+esc(r.name.charAt(0).toUpperCase())+'</span><span class="cm-mid"><span class="cm-nm">'+esc(r.name)+'</span></span><span class="cm-pc">Hidden</span><span class="cm-sub">Progress hidden</span></div>';return}
-    var bar=wkMode?(mx?Math.max(r.wk>0?3:0,r.wk*100/mx):0):Math.min(100,r.pct);
+    var bar=Math.min(100,r.pct);
     var big=wkMode?fmt(r.wk):r.pct.toFixed(1)+'%';
     var sub=wkMode?(r.pct.toFixed(1)+'% of syllabus done · '+r.st+(r.st===1?' day':' days')+' streak'):(fmt(r.sec)+' today · '+r.st+(r.st===1?' day':' days')+' streak');
     h+='<div class="cm-r'+(me?' me':'')+(i===0&&bar>0?' lead':'')+'" data-id="'+esc(r.id)+'"><span class="cm-rk">'+(i+1)+'</span><span class="cm-av">'+esc(r.name.charAt(0).toUpperCase())+'</span><span class="cm-mid"><span class="cm-nm">'+esc(r.name)+(me?' (you)':'')+(i===0&&bar>0?'<svg class="crown" viewBox="0 0 22 18" aria-hidden="true"><path d="M2 15l-1-10 6 5 4-8 4 8 6-5-1 10z"/></svg>':'')+'</span><span class="bar"><i style="width:'+bar+'%"></i></span></span><span class="cm-pc">'+big+'</span><span class="cm-sub">'+(r.mehid?'Only you can see this · ':'')+sub+'</span></div>';
