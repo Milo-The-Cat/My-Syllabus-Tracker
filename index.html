@@ -2381,7 +2381,7 @@ function adSignIn(){
     if(r&&r.error){AD.lmsg=r.error.message||'Could not sign in.';if(cur==='admin')adLogin()}
   }).catch(function(e){AD.lbusy=false;AD.lmsg=(e&&e.message)||'Could not sign in.';if(cur==='admin')adLogin()});
 }
-function adNf(){app.innerHTML='<div class="narrow"><section class="card"><h2>Not found</h2><p class="sub">There is nothing here.</p></section></div>'}
+function adNf(){app.innerHTML='<div class="narrow"><section class="card"><h2>Not found</h2><p class="sub">There is nothing here.</p></section>'+(CM.user?'<p class="sub"><button type="button" class="adb" data-act="adout">Sign out</button></p>':'')+'</div>'}
 function adLoad(){
   if(AD.loading)return;AD.loading=true;
   Promise.all([
