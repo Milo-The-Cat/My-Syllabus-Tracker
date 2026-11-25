@@ -866,12 +866,13 @@ function normalize(o){
     pick:typeof o.pick==='string'?o.pick:'',
     weak:(o.weak&&typeof o.weak==='object')?o.weak:{},
     dd:(o.dd&&typeof o.dd==='object')?o.dd:{},
+    mt:(+o.mt>0)?+o.mt:0,
     pomo:(o.pomo&&typeof o.pomo==='object'&&(o.pomo.m==='f'||o.pomo.m==='b')&&+o.pomo.rem>0)?{m:o.pomo.m,end:+o.pomo.end||0,rem:+o.pomo.rem,round:Math.max(1,Math.floor(+o.pomo.round||1))}:{m:'f',end:0,rem:1500,round:1}
   };
 }
 var S=normalize({});
 try{var raw=localStorage.getItem(KEY);if(raw){var o=JSON.parse(raw);if(o&&typeof o==='object'){S=normalize(o)}}}catch(e){}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function save(){try{S.mt=Date.now();localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(typeof syncSoon==='function')syncSoon()}
 
 var bn=function(n){return String(n).replace(/\d/g,function(d){return '০১২৩৪৫৬৭৮৯'[d]})};
 var esc=function(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
@@ -2315,6 +2316,7 @@ function cmSetUser(u){
   }
   AD.ok=null;if(cur==='admin')renderAdmin();
   CM.isAdmin=false;renderNav();updateStats();
+  SY.ready=false;if(u)syPull();
   if(u&&cmSb){cmRun(cmSb.rpc('is_admin')).then(function(r){var v=(r===true);if(v!==CM.isAdmin){CM.isAdmin=v;renderNav();updateStats()}}).catch(function(){})}
   cmPaint();
 }
@@ -2367,6 +2369,96 @@ function cmPushStats(){
     if(cur==='community'&&CM.tab==='board'&&CM.gid)cmLoadBoard();
   }).catch(function(){});
 }
+
+
+/* ===== Cloud sync (your progress follows your account) ===== */
+var SYK='studyTracker.sync';
+var SY={t:null,busy:false,pulling:false,ready:false,applying:false,state:'',at:0};
+function syMeta(){try{return JSON.parse(localStorage.getItem(SYK)||'{}')||{}}catch(e){return {}}}
+function syMetaSet(o){try{localStorage.setItem(SYK,JSON.stringify(o))}catch(e){}}
+function syText(){
+  if(SY.state==='ok'){var d=new Date(SY.at);return 'Cloud sync: saved at '+pad(d.getHours())+':'+pad(d.getMinutes())}
+  if(SY.state==='saving')return 'Cloud sync: saving…';
+  if(SY.state==='pending')return 'Cloud sync: saving soon…';
+  if(SY.state==='err')return 'Cloud sync: could not connect. Your data is safe on this device and will retry.';
+  return 'Cloud sync: checking…';
+}
+function syPaint(){var e=document.getElementById('sy-st');if(e)e.textContent=syText()}
+function syPayload(){var o=JSON.parse(JSON.stringify(S));delete o.timer;delete o.pomo;o.pal=curPal;return o}
+function syncSoon(){
+  if(!cmSb||!CM.user||SY.applying)return;
+  if(!SY.ready)return;
+  SY.state='pending';syPaint();
+  if(!SY.t)SY.t=setTimeout(function(){SY.t=null;syPush()},4000);
+}
+function syFlush(){
+  if(SY.t){clearTimeout(SY.t);SY.t=null;return syPush().catch(function(){})}
+  return Promise.resolve();
+}
+function syPush(){
+  if(!cmSb||!CM.user)return Promise.resolve();
+  if(SY.busy){if(!SY.t)SY.t=setTimeout(function(){SY.t=null;syPush()},2000);return Promise.resolve()}
+  var u=CM.user.id,mt=S.mt||Date.now();
+  SY.busy=true;SY.state='saving';syPaint();
+  return cmRun(cmSb.from('userdata').upsert({user_id:u,data:syPayload(),updated_at:new Date().toISOString()})).then(function(){
+    SY.busy=false;SY.state='ok';SY.at=Date.now();var m=syMeta();m.uid=u;m.mt=mt;syMetaSet(m);syPaint();
+  }).catch(function(){SY.busy=false;SY.state='err';syPaint()});
+}
+function syMerge(a,b){
+  var an=(a.mt||0)>=(b.mt||0),n=JSON.parse(JSON.stringify(an?a:b)),o=JSON.parse(JSON.stringify(an?b:a));
+  ['done','notes','custom','rev','now','wch','hide','sess','weak','dd'].forEach(function(k){n[k]=Object.assign({},o[k]||{},n[k]||{})});
+  var lg={};Object.keys(o.log||{}).concat(Object.keys(n.log||{})).forEach(function(k){lg[k]=Math.max((o.log||{})[k]||0,(n.log||{})[k]||0)});n.log=lg;
+  ['tasks','examList','cs'].forEach(function(k){var seen={},out=[];(n[k]||[]).concat(o[k]||[]).forEach(function(x){if(x&&x.id&&!seen[x.id]){seen[x.id]=1;out.push(x)}});n[k]=out});
+  n.mt=Date.now();
+  return normalize(n);
+}
+function syApply(ns,pal){
+  SY.applying=true;
+  ns.timer=S.timer;ns.pomo=S.pomo;
+  S=ns;
+  try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
+  if(typeof pal==='string'&&pal!==curPal&&palOf(pal).k===pal)setPal(pal);
+  rebuild();
+  var ok=(cur==='dash'||cur==='community'||cur==='subjects'||cur==='admin'||byId(DATA,cur));
+  if(ok)render();else route();
+  SY.applying=false;
+}
+function syBusyTyping(){var a=document.activeElement;return !!(a&&(a.tagName==='TEXTAREA'||a.tagName==='INPUT')&&app.contains(a)&&cur!=='community'&&cur!=='admin')}
+function syPull(force){
+  if(!cmSb||!CM.user||SY.pulling)return Promise.resolve();
+  SY.pulling=true;SY.state=SY.state||'';syPaint();
+  var u=CM.user.id;
+  return cmRun(cmSb.from('userdata').select('data').eq('user_id',u).maybeSingle()).then(function(row){
+    SY.pulling=false;
+    var meta=syMeta(),other=!!(meta.uid&&meta.uid!==u),cloud=row&&row.data&&typeof row.data==='object'?row.data:null;
+    if(!cloud){
+      SY.ready=true;
+      if(other){syApply(normalize({}),'');var m0=syMeta();m0.uid=u;m0.mt=0;syMetaSet(m0);SY.state='ok';SY.at=Date.now();syPaint();return}
+      return syPush();
+    }
+    var pal=cloud.pal,cs=normalize(cloud);
+    if(other){
+      if(syBusyTyping()){SY.pulling=false;return}
+      syApply(cs,pal);SY.ready=true;var m1=syMeta();m1.uid=u;m1.mt=S.mt;syMetaSet(m1);SY.state='ok';SY.at=Date.now();syPaint();return;
+    }
+    if(!meta.uid){
+      if(syBusyTyping()){return}
+      var mg=syMerge(S,cs);syApply(mg,pal);SY.ready=true;return syPush();
+    }
+    SY.ready=true;
+    if((cs.mt||0)>(S.mt||0)){
+      if(syBusyTyping())return;
+      syApply(cs,pal);var m2=syMeta();m2.uid=u;m2.mt=S.mt;syMetaSet(m2);SY.state='ok';SY.at=Date.now();syPaint();
+    }else if((S.mt||0)>(cs.mt||0)||force){return syPush()}
+    else{SY.state='ok';SY.at=SY.at||Date.now();syPaint()}
+  }).catch(function(){SY.pulling=false;SY.state='err';syPaint()});
+}
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='visible'){if(CM.user)syPull()}
+  else syFlush();
+});
+setInterval(function(){if(document.visibilityState==='visible'&&CM.user)syPull()},90000);
+window.addEventListener('pagehide',function(){syFlush()});
 
 
 /* ===== Admin page (#admin) — protected by Supabase policies, not by this code ===== */
@@ -2468,7 +2560,7 @@ function adClick(el,a){
   if(a==='adpw'){AD.rp=id||null;AD.ok2='';AD.err='';renderAdmin();var f=document.getElementById('ad-np');if(f)f.focus();return true}
   if(a==='adpwset'){adSetPw();return true}
   if(a==='adlogin'){adSignIn();return true}
-  if(a==='adout'){Promise.resolve(cmSb.auth.signOut()).catch(cmFail);return true}
+  if(a==='adout'){syFlush().then(function(){return cmSb.auth.signOut()}).catch(cmFail);return true}
   if(a==='adtab'){AD.tab=el.dataset.tab;AD.arm=null;renderAdmin();return true}
   if(a==='adref'){AD.ok=null;AD.loading=false;renderAdmin();return true}
   if(a==='adgsel'){AD.gsel=id;AD.arm=null;renderAdmin();return true}
@@ -2526,12 +2618,13 @@ function cmAuthHtml(){
   if(up)h+='<label class="cm-l" for="cm-name">Your name</label><input class="cm-in" id="cm-name" maxlength="30" autocomplete="nickname" data-act="cmauthin" placeholder="The name your group will see">';
   h+='<label class="cm-l" for="cm-email">Email</label><input class="cm-in" id="cm-email" type="email" autocomplete="email" data-act="cmauthin" placeholder="you@example.com">';
   h+='<label class="cm-l" for="cm-pass">Password</label><input class="cm-in" id="cm-pass" type="password" autocomplete="'+(up?'new-password':'current-password')+'" data-act="cmauthin" placeholder="At least 6 characters">';
+  h+='<p class="sub">Sign in to save your whole progress in your account. You can then open it on any phone or computer.</p>';
   h+=cmNote()+'<button class="btn pri" type="button" data-act="cmauth"'+(CM.busy?' disabled':'')+'>'+(up?'Create account':'Sign in')+'</button>';
   if(up)h+='<p class="sub">Your overall progress, study time and streak are visible to the people in your groups. Your notes and topic lists stay private.</p>';
   return h+'</section>';
 }
 function cmMainHtml(){
-  var h='<section class="card cm-me"><div><b>'+esc(CM.name)+'</b><span class="sub"> · signed in</span></div><div class="cm-meb"><button class="btn cm-sh'+(S.share?' on':'')+'" type="button" data-act="cmshare" aria-pressed="'+S.share+'">'+(S.share?'Sharing progress: On':'Sharing progress: Off')+'</button><button class="btn" type="button" data-act="cmpw">Change password</button><button class="btn" type="button" data-act="cmout">Sign out</button></div></section>'+(CM.pw?'<section class="card cm-pw"><h2>Change password</h2><label class="cm-l" for="cm-np">New password</label><input class="cm-in" id="cm-np" type="password" autocomplete="new-password" data-act="cmpwin" placeholder="At least 6 characters"><label class="cm-l" for="cm-np2">Repeat new password</label><input class="cm-in" id="cm-np2" type="password" autocomplete="new-password" data-act="cmpwin" placeholder="Type it again"><div class="cm-row"><button class="btn pri" type="button" data-act="cmpwsave"'+(CM.busy?' disabled':'')+'>Save password</button><button class="btn" type="button" data-act="cmpw">Cancel</button></div></section>':'')+'<p class="sub cm-shn">'+(S.share?'Group members can see your progress, study time and streak.':'Your progress is hidden. Group members see you as "Progress hidden", but you can still chat.')+'</p>'+cmNote();
+  var h='<section class="card cm-me"><div><b>'+esc(CM.name)+'</b><span class="sub"> · signed in</span><br><span class="sub" id="sy-st">'+syText()+'</span></div><div class="cm-meb"><button class="btn" type="button" data-act="cmsync">Sync now</button><button class="btn cm-sh'+(S.share?' on':'')+'" type="button" data-act="cmshare" aria-pressed="'+S.share+'">'+(S.share?'Sharing progress: On':'Sharing progress: Off')+'</button><button class="btn" type="button" data-act="cmpw">Change password</button><button class="btn" type="button" data-act="cmout">Sign out</button></div></section>'+(CM.pw?'<section class="card cm-pw"><h2>Change password</h2><label class="cm-l" for="cm-np">New password</label><input class="cm-in" id="cm-np" type="password" autocomplete="new-password" data-act="cmpwin" placeholder="At least 6 characters"><label class="cm-l" for="cm-np2">Repeat new password</label><input class="cm-in" id="cm-np2" type="password" autocomplete="new-password" data-act="cmpwin" placeholder="Type it again"><div class="cm-row"><button class="btn pri" type="button" data-act="cmpwsave"'+(CM.busy?' disabled':'')+'>Save password</button><button class="btn" type="button" data-act="cmpw">Cancel</button></div></section>':'')+'<p class="sub cm-shn">'+(S.share?'Group members can see your progress, study time and streak.':'Your progress is hidden. Group members see you as "Progress hidden", but you can still chat.')+'</p>'+cmNote();
   h+='<section class="card"><h2>Your groups</h2>';
   if(CM.groups.length){
     h+='<div class="cm-groups">';
@@ -2646,7 +2739,7 @@ function cmClick(el,act){
   else if(act==='cmshare'){S.share=!S.share;save();cmPaint();cmPushStats()}
   else if(act==='cmbm'){CM.bm=el.dataset.bm;cmPaint()}
   else if(act==='cmauth'){cmAuth()}
-  else if(act==='cmout'){Promise.resolve(cmSb.auth.signOut()).catch(cmFail)}
+  else if(act==='cmout'){syFlush().then(function(){return cmSb.auth.signOut()}).catch(cmFail)}
   else if(act==='cmsel'){CM.gid=el.dataset.id;CM.tab='board';CM.msg='';cmPaint();cmOpenGroup()}
   else if(act==='cmtab'){CM.tab=el.dataset.tab;CM.msg='';cmPaint();if(CM.tab==='board')cmLoadBoard()}
   else if(act==='cmcreate'){cmCreate()}
@@ -2656,6 +2749,7 @@ function cmClick(el,act){
     var code=el.dataset.code;
     try{navigator.clipboard.writeText(code).then(function(){cmMsg('Invite code copied.')},function(){cmMsg('Could not copy. Select the code and copy it by hand.',true)})}
     catch(err){cmMsg('Could not copy. Select the code and copy it by hand.',true)}
+  }else if(act==='cmsync'){syPull(true)
   }else if(act==='cmpw'){CM.pw=!CM.pw;CM.msg='';cmPaint()
   }else if(act==='cmpwsave'){cmPwSave()
   }else if(act==='cmleave'){
