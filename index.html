@@ -2404,6 +2404,26 @@ function syPush(){
     SY.busy=false;SY.state='ok';SY.at=Date.now();var m=syMeta();m.uid=u;m.mt=mt;syMetaSet(m);syPaint();
   }).catch(function(){SY.busy=false;SY.state='err';syPaint()});
 }
+function syWipe(){
+  SY.applying=true;
+  S=normalize({});
+  try{localStorage.removeItem(KEY);localStorage.removeItem(SYK)}catch(e){}
+  rebuild();
+  var ok=(cur==='dash'||cur==='community'||cur==='subjects'||cur==='admin'||byId(DATA,cur));
+  if(ok)render();else route();
+  SY.applying=false;SY.state='';SY.ready=false;
+}
+function syOut(){
+  return syFlush().then(function(){
+    if(CM.user&&(syMeta().mt||0)<(S.mt||0))return syPush();
+  }).then(function(){
+    var saved=!!CM.user&&SY.state==='ok'&&(syMeta().uid===CM.user.id)&&(syMeta().mt||0)>=(S.mt||0);
+    return Promise.resolve(cmSb.auth.signOut()).then(function(){
+      if(saved){syWipe();cmMsg('Signed out. Your progress is saved in your account. Sign in to see it again.',false)}
+      else cmMsg('Signed out. The cloud could not be reached, so your progress was kept on this device.',true);
+    });
+  });
+}
 function syMerge(a,b){
   var an=(a.mt||0)>=(b.mt||0),n=JSON.parse(JSON.stringify(an?a:b)),o=JSON.parse(JSON.stringify(an?b:a));
   ['done','notes','custom','rev','now','wch','hide','sess','weak','dd'].forEach(function(k){n[k]=Object.assign({},o[k]||{},n[k]||{})});
@@ -2560,7 +2580,7 @@ function adClick(el,a){
   if(a==='adpw'){AD.rp=id||null;AD.ok2='';AD.err='';renderAdmin();var f=document.getElementById('ad-np');if(f)f.focus();return true}
   if(a==='adpwset'){adSetPw();return true}
   if(a==='adlogin'){adSignIn();return true}
-  if(a==='adout'){syFlush().then(function(){return cmSb.auth.signOut()}).catch(cmFail);return true}
+  if(a==='adout'){syOut().catch(cmFail);return true}
   if(a==='adtab'){AD.tab=el.dataset.tab;AD.arm=null;renderAdmin();return true}
   if(a==='adref'){AD.ok=null;AD.loading=false;renderAdmin();return true}
   if(a==='adgsel'){AD.gsel=id;AD.arm=null;renderAdmin();return true}
@@ -2739,7 +2759,7 @@ function cmClick(el,act){
   else if(act==='cmshare'){S.share=!S.share;save();cmPaint();cmPushStats()}
   else if(act==='cmbm'){CM.bm=el.dataset.bm;cmPaint()}
   else if(act==='cmauth'){cmAuth()}
-  else if(act==='cmout'){syFlush().then(function(){return cmSb.auth.signOut()}).catch(cmFail)}
+  else if(act==='cmout'){syOut().catch(cmFail)}
   else if(act==='cmsel'){CM.gid=el.dataset.id;CM.tab='board';CM.msg='';cmPaint();cmOpenGroup()}
   else if(act==='cmtab'){CM.tab=el.dataset.tab;CM.msg='';cmPaint();if(CM.tab==='board')cmLoadBoard()}
   else if(act==='cmcreate'){cmCreate()}
