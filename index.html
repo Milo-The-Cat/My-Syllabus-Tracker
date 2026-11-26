@@ -490,8 +490,27 @@ body::after{width:380px;height:380px;right:-90px;bottom:-110px;background:color-
 }
 
 /* ===== Exam syllabus picker ===== */
-.exitem+.exitem{border-top:1px solid var(--line)}
-.exitem .erow{border-top:0}
+.exitem{padding:10px 0;border-top:1px solid var(--line)}
+.exitem:first-of-type{border-top:0}
+.ex{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:center}
+.ex .nm{font-weight:700;display:flex;align-items:center;gap:8px;min-width:0}
+.ex .nm span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dl{justify-self:end;text-align:right;line-height:1.1}
+.dl b{font-size:1.25rem;color:var(--accent);font-variant-numeric:tabular-nums}
+.dl small{display:block;color:var(--muted,var(--fg));opacity:.7;font-size:.72rem}
+.dl.warm b{color:#ffb454}.dl.hot b{color:#ff6b8a}
+.meta{display:flex;align-items:center;gap:10px;margin-top:6px;font-size:.8rem;min-width:0;flex-wrap:wrap}
+.meta .grow{flex:1}.meta .empty{opacity:.7}
+.meta .dots{display:flex;gap:4px;flex:none}
+.meta .dots i{width:9px;height:9px;border-radius:50%;background:var(--c);display:block}
+.meta .bar{flex:1 1 60px;height:5px;min-width:40px}
+.meta .pc{font-weight:700;font-variant-numeric:tabular-nums}
+.meta .date{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:3px 8px;font-size:.8rem;min-width:0}
+.meta .lk{font:inherit;font-size:.8rem;color:var(--accent);background:none;border:0;cursor:pointer;padding:0}
+.meta .lk:hover{text-decoration:underline}
+.addb{font:inherit;font-size:.8rem;font-weight:700;color:var(--accent);background:none;border:1px solid var(--line);border-radius:99px;padding:4px 12px;cursor:pointer}
+.exnew{border-top:1px solid var(--line);padding-top:12px;margin-top:6px}
+.exadd{margin-top:0}
 .exinfo{display:flex;flex-direction:column;gap:10px;padding:2px 0 14px}
 .exinfo.ed{padding:14px;border-radius:16px;background:var(--accent-soft);margin-bottom:12px}
 .exinfo .exh{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
@@ -1031,6 +1050,14 @@ function left(v){
   if(n===0)return 'Exam today';
   return 'Finished';
 }
+function leftHtml(v){
+  if(!v)return {c:'dl',h:'<b>–</b><small>no date</small>'};
+  var d=new Date(v+'T00:00:00'),t=new Date();t.setHours(0,0,0,0);
+  var n=Math.round((d-t)/864e5);
+  if(n<0)return {c:'dl',h:'<b>✓</b><small>finished</small>'};
+  if(n===0)return {c:'dl hot',h:'<b>0</b><small>exam today</small>'};
+  return {c:'dl'+(n<=7?' hot':n<=30?' warm':''),h:'<b>'+n+'</b><small>'+(n===1?'day':'days')+' left</small>'};
+}
 function upcoming(){
   var t=dkey(new Date());
   var c=S.examList.filter(function(x){return x.d&&x.d>=t}).sort(function(a,b){return a.d<b.d?-1:a.d>b.d?1:0});
@@ -1162,7 +1189,7 @@ function heatHtml(){
 }
 
 /* ===== Exam syllabus: choose subjects and chapters ===== */
-var exSel=[],exOpen={},exEditId='';
+var exSel=[],exOpen={},exEditId='',exAdd=false;
 function exSet(key){
   if(key==='new')return exSel;
   var ex=byId(S.examList,key);
@@ -1215,12 +1242,14 @@ function exSummary(x){
   if(exEditId===x.id){
     return '<div class="exinfo ed"><div class="exh"><b>Subjects &amp; chapters for '+esc(x.n)+'</b><span class="sub" data-extot="'+esc(x.id)+'">'+cks.length+' selected</span></div>'+exPicker(x.id,cks)+'<button class="btn pri" type="button" data-act="exdone">Done</button></div>';
   }
-  if(!cks.length)return '<div class="exinfo"><span class="sub">No subjects chosen yet</span><button class="lnk" type="button" data-act="exedit" data-id="'+esc(x.id)+'">Choose subjects &amp; chapters</button></div>';
+  var dt='<input class="date" type="date" id="ex-'+esc(x.id)+'" data-act="exam" data-key="'+esc(x.id)+'" value="'+esc(x.d||'')+'" aria-label="Date for '+esc(x.n)+'">';
+  if(!cks.length)return '<div class="meta"><span class="empty">No subjects chosen</span><span class="grow"></span>'+dt+'<button class="lk" type="button" data-act="exedit" data-id="'+esc(x.id)+'">Choose subjects</button></div>';
   var by={},order=[];
   cks.forEach(function(ck){var c=chapterOf(ck);if(!by[c.p.id]){by[c.p.id]=0;order.push(c.p)}by[c.p.id]++});
-  var st=exStat(cks),chips='';
-  order.forEach(function(p){chips+='<span class="exchip s-'+p.sid+'"><i class="dot"></i>'+p.en+' · '+by[p.id]+' ch</span>'});
-  return '<div class="exinfo"><div class="exchips">'+chips+'</div><div class="exmeta"><span class="sub">'+cks.length+' chapters · '+ratio(st).toFixed(0)+'% done</span><span class="bar"><i style="width:'+ratio(st)+'%"></i></span><button class="lnk" type="button" data-act="exedit" data-id="'+esc(x.id)+'">Edit</button></div></div>';
+  var st=exStat(cks),dots='',names=[],seen={};
+  order.forEach(function(p){if(!seen[p.sid]){seen[p.sid]=1;dots+='<i class="s-'+p.sid+'"></i>';names.push(p.en.replace(/ (1st|2nd).*$/,''))}});
+  var r=ratio(st);
+  return '<div class="meta"><span class="dots" title="'+esc(names.join(', '))+'">'+dots+'</span><span>'+cks.length+' ch</span><span class="bar"><i style="width:'+r+'%"></i></span><span class="pc">'+r.toFixed(0)+'%</span>'+dt+'<button class="lk" type="button" data-act="exedit" data-id="'+esc(x.id)+'">Edit</button></div>';
 }
 function planHtml(){
   var up=upcoming();
@@ -1570,14 +1599,17 @@ function renderDash(){
   h+='<div class="duo">'+pomoHtml()+heatHtml()+'</div>';
 
   /* exams */
-  h+='<section class="card" id="examsec"><div class="chead"><h2>Exam Countdown</h2></div>'+planHtml();
+  h+='<section class="card" id="examsec"><div class="chead"><h2>Exam Countdown</h2><button class="addb" type="button" data-act="exaddtog">'+(exAdd?'Close':'+ Add exam')+'</button></div>'+planHtml();
   var exs=S.examList.slice().sort(function(a,b){if(!a.d&&!b.d)return 0;if(!a.d)return 1;if(!b.d)return -1;return a.d<b.d?-1:a.d>b.d?1:0});
   exs.forEach(function(x){
-    h+='<div class="exitem"><div class="erow"><span class="lb">'+esc(x.n)+'<button class="x" type="button" data-act="delex" data-id="'+esc(x.id)+'" aria-label="Delete exam">×</button></span><input type="date" id="ex-'+esc(x.id)+'" data-act="exam" data-key="'+esc(x.id)+'" value="'+esc(x.d||'')+'" aria-label="Date for '+esc(x.n)+'"><span class="lf" id="lf-'+esc(x.id)+'">'+left(x.d)+'</span></div>'+exSummary(x)+'</div>';
+    var lh=leftHtml(x.d);
+    h+='<div class="exitem"><div class="ex"><div class="nm"><span>'+esc(x.n)+'</span><button class="x" type="button" data-act="delex" data-id="'+esc(x.id)+'" aria-label="Delete exam">×</button></div><div class="'+lh.c+'" id="lf-'+esc(x.id)+'">'+lh.h+'</div></div>'+exSummary(x)+'</div>';
   });
   if(!exs.length)h+='<p class="sub">No exams added yet.</p>';
-  h+='<div class="exnew"><div class="addrow exadd"><input type="text" id="exn" data-act="exin" placeholder="Exam name, e.g. Model Test" aria-label="Exam name"><input type="date" id="exd" aria-label="Exam date"><button class="btn pri" type="button" data-act="addex">Add exam</button></div>';
-  h+='<details class="exsel" data-p="newbox"'+(exOpen.newbox?' open':'')+'><summary>Choose subjects &amp; chapters <span data-extot="new">'+exSel.length+' selected</span></summary>'+exPicker('new',exSel)+'</details></div>';
+  if(exAdd){
+    h+='<div class="exnew"><div class="addrow exadd"><input type="text" id="exn" data-act="exin" placeholder="Exam name, e.g. Model Test" aria-label="Exam name"><input type="date" id="exd" aria-label="Exam date"><button class="btn pri" type="button" data-act="addex">Add</button></div>';
+    h+='<details class="exsel" data-p="newbox"'+(exOpen.newbox?' open':'')+'><summary>Choose subjects &amp; chapters <span data-extot="new">'+exSel.length+' selected</span></summary>'+exPicker('new',exSel)+'</details></div>';
+  }
   h+='</section>';
 
   h+='<div class="duo">'+badgesHtml()+weakListHtml()+'</div>';
@@ -2062,7 +2094,7 @@ app.addEventListener('change',function(e){
     var ex=byId(S.examList,el.dataset.key);
     if(ex){ex.d=el.value;save()}
     var lf=document.getElementById('lf-'+el.dataset.key);
-    if(lf)lf.textContent=left(el.value);
+    if(lf){var lh2=leftHtml(el.value);lf.className=lh2.c;lf.innerHTML=lh2.h}
   }else if(act==='tktick'){
     var tk=byId(S.tasks,el.dataset.id);
     if(tk){tk.done=el.checked;save();render()}
@@ -2098,7 +2130,7 @@ function addEx(){
   var name=n?n.value.trim():'';
   if(!name){if(n)n.focus();return}
   S.examList.push({id:'e'+Date.now().toString(36)+Math.floor(Math.random()*1e4),n:name,d:d?d.value:'',cks:exSel.slice()});
-  exSel=[];exOpen.newbox=false;
+  exSel=[];exOpen.newbox=false;exAdd=false;
   save();render();
 }
 function addTask(){
@@ -2326,6 +2358,7 @@ app.addEventListener('click',function(e){
   }
   else if(act==='exedit'){exEditId=el.dataset.id;render()}
   else if(act==='exdone'){exEditId='';render()}
+  else if(act==='exaddtog'){exAdd=!exAdd;render()}
   else if(act==='heatday'){heatDay=el.dataset.d;render()}
   else if(act==='heatprev'){heatOff--;render()}
   else if(act==='heatnext'){if(heatOff<0){heatOff++;render()}}
