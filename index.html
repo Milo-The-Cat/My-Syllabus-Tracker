@@ -493,6 +493,15 @@ body::after{width:380px;height:380px;right:-90px;bottom:-110px;background:color-
 .advw{margin-top:14px}
 .advr{display:grid;grid-template-columns:minmax(7rem,12rem) 1fr 3.5rem;gap:10px;align-items:center;padding:5px 0;font-size:.85rem}
 .advr .bar{height:6px}.advr b{text-align:right;font-variant-numeric:tabular-nums}
+.gate{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;overflow:auto;background:var(--bg);padding:24px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
+.gt-c{width:100%;max-width:380px;margin:auto;text-align:center}
+.gt-c.card{text-align:left;padding:26px 22px}
+.gt-logo{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--accent2));margin:0 auto 12px}
+.gt-t{font-size:1.3rem;text-align:center;margin:0}
+.gt-s{text-align:center;margin:4px 0 16px}
+.gt-go{width:100%;margin-top:14px}
+.gt-n,.gt-f{text-align:center;margin-top:12px;font-size:.78rem}
+html.gated body{overflow:hidden}
 .exitem{padding:10px 0;border-top:1px solid var(--line)}
 .exitem:first-of-type{border-top:0}
 .ex{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:center}
@@ -2474,9 +2483,61 @@ function cmGroup(){for(var i=0;i<CM.groups.length;i++)if(CM.groups[i].id===CM.gi
 function cmEl(id){return document.getElementById(id)}
 function cmVal(id){var e=cmEl(id);return e?e.value:''}
 
+
+/* ===== Login gate: everyone must sign in ===== */
+var GT={mode:'in',msg:'',err:false,busy:false},gtEl=null,gtKey='';
+function gtOn(){return !!(SB_URL&&SB_KEY&&cmSb)}
+function gtHtml(){
+  if(!CM.ready)return '<div class="gt-c"><div class="gt-logo" aria-hidden="true"></div><p class="sub">Loading…</p></div>';
+  var up=GT.mode==='up';
+  var h='<div class="gt-c card"><div class="gt-logo" aria-hidden="true"></div><h1 class="gt-t">StudyMate</h1><p class="sub gt-s">Sign in to continue. Your progress syncs to your account.</p>';
+  h+='<div class="cm-tabs"><button type="button" class="'+(up?'':'on')+'" data-gt="in">Sign in</button><button type="button" class="'+(up?'on':'')+'" data-gt="up">Create account</button></div>';
+  if(up)h+='<label class="cm-l" for="gt-name">Your name</label><input class="cm-in" id="gt-name" maxlength="30" autocomplete="nickname" placeholder="The name your group will see">';
+  h+='<label class="cm-l" for="gt-email">Email</label><input class="cm-in" id="gt-email" type="email" autocomplete="email" placeholder="you@example.com">';
+  h+='<label class="cm-l" for="gt-pass">Password</label><input class="cm-in" id="gt-pass" type="password" autocomplete="'+(up?'new-password':'current-password')+'" placeholder="At least 6 characters">';
+  if(GT.msg)h+='<p class="cm-note '+(GT.err?'err':'ok')+'" role="status">'+esc(GT.msg)+'</p>';
+  h+='<button class="btn pri gt-go" type="button" data-gt-go'+(GT.busy?' disabled':'')+'>'+(up?'Create account':'Sign in')+'</button>';
+  if(up)h+='<p class="sub gt-n">Your overall progress, study time and streak are visible to the people in your groups. Your notes and topic lists stay private.</p>';
+  return h+'<p class="sub gt-f">Made by Azmain (DC-27)</p></div>';
+}
+function gtRender(keep){
+  if(!gtOn()){if(gtEl){gtEl.remove();gtEl=null}document.documentElement.classList.remove('gated');return}
+  var show=!CM.ready||!CM.user;
+  if(!show){if(gtEl){gtEl.remove();gtEl=null}document.documentElement.classList.remove('gated');return}
+  if(!gtEl){
+    gtEl=document.createElement('div');gtEl.className='gate';gtEl.setAttribute('role','dialog');gtEl.setAttribute('aria-label','Sign in');
+    gtEl.addEventListener('click',function(e){
+      var m=e.target.closest('[data-gt]');
+      if(m){GT.mode=m.getAttribute('data-gt');GT.msg='';gtRender();var f=document.getElementById(GT.mode==='up'?'gt-name':'gt-email');if(f)f.focus();return}
+      if(e.target.closest('[data-gt-go]'))gtAuth();
+    });
+    gtEl.addEventListener('keydown',function(e){if(e.key==='Enter'&&e.target.tagName==='INPUT')gtAuth()});
+    document.body.appendChild(gtEl);
+  }
+  document.documentElement.classList.add('gated');
+  var saved={};['gt-name','gt-email','gt-pass'].forEach(function(id){var e=document.getElementById(id);if(e)saved[id]=e.value});
+  gtEl.innerHTML=gtHtml();
+  for(var k in saved){var e2=document.getElementById(k);if(e2)e2.value=saved[k]}
+}
+function gtMsg(t,err){GT.msg=t||'';GT.err=!!err;gtRender()}
+function gtAuth(){
+  if(GT.busy||!cmSb)return;
+  var g=function(id){var e=document.getElementById(id);return e?e.value:''};
+  var email=g('gt-email').trim(),pass=g('gt-pass'),up=GT.mode==='up',name='';
+  if(up){name=g('gt-name').trim().slice(0,30);if(!name)return gtMsg('Enter your name.',true)}
+  if(!email||pass.length<6)return gtMsg('Enter your email and a password of at least 6 characters.',true);
+  GT.busy=true;GT.msg='';if(up)CM.name=name;gtRender();
+  var req=up?cmSb.auth.signUp({email:email,password:pass,options:{data:{name:name}}}):cmSb.auth.signInWithPassword({email:email,password:pass});
+  Promise.resolve(req).then(function(r){
+    GT.busy=false;if(r.error)throw r.error;
+    if(up&&!(r.data&&r.data.session))gtMsg('Account created. Check your email to confirm it, then sign in.');
+    else gtRender();
+  }).catch(function(e){GT.busy=false;gtMsg((e&&e.message)?e.message:'Something went wrong. Check your connection and try again.',true)});
+}
 function cmInit(){
   if(!SB_URL||!SB_KEY||!window.supabase)return;
   try{cmSb=window.supabase.createClient(SB_URL,SB_KEY)}catch(e){cmSb=null;return}
+  gtRender();
   cmSb.auth.onAuthStateChange(function(ev,session){
     setTimeout(function(){cmSetUser(session?session.user:null)},0);
   });
@@ -2498,7 +2559,7 @@ function cmSetUser(u){
   CM.isAdmin=false;renderNav();updateStats();
   SY.ready=false;if(u)syPull();
   if(u&&cmSb){cmRun(cmSb.rpc('is_admin')).then(function(r){var v=(r===true);if(v!==CM.isAdmin){CM.isAdmin=v;renderNav();updateStats()}}).catch(function(){})}
-  cmPaint();
+  cmPaint();gtRender();
 }
 function cmLoadGroups(sel){
   return cmRun(cmSb.from('members').select('group_id, groups(id,name,code)').eq('user_id',CM.user.id)).then(function(rows){
