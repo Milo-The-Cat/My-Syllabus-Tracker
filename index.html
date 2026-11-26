@@ -490,6 +490,9 @@ body::after{width:380px;height:380px;right:-90px;bottom:-110px;background:color-
 }
 
 /* ===== Exam syllabus picker ===== */
+.advw{margin-top:14px}
+.advr{display:grid;grid-template-columns:minmax(7rem,12rem) 1fr 3.5rem;gap:10px;align-items:center;padding:5px 0;font-size:.85rem}
+.advr .bar{height:6px}.advr b{text-align:right;font-variant-numeric:tabular-nums}
 .exitem{padding:10px 0;border-top:1px solid var(--line)}
 .exitem:first-of-type{border-top:0}
 .ex{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:center}
@@ -2637,7 +2640,7 @@ window.addEventListener('pagehide',function(){syFlush()});
 
 
 /* ===== Admin page (#admin) — protected by Supabase policies, not by this code ===== */
-var AD={adm:null,rp:null,ok2:'',lmsg:'',lbusy:false,ok:null,loading:false,tab:'users',users:[],prof:{},stats:{},groups:[],mem:[],msgs:[],gsel:null,arm:null,err:''};
+var AD={adm:null,rp:null,ok2:'',lmsg:'',lbusy:false,ok:null,loading:false,tab:'users',users:[],prof:{},stats:{},groups:[],mem:[],msgs:[],gsel:null,arm:null,err:'',view:null};
 function adLogin(){
   var e0=(document.getElementById('ad-email')||{}).value||'';
   app.innerHTML='<div class="narrow"><section class="card cm-auth"><h2>Admin sign in</h2><label class="cm-l" for="ad-email">Email</label><input class="cm-in" id="ad-email" type="email" autocomplete="email" data-act="adin" placeholder="you@example.com"><label class="cm-l" for="ad-pass">Password</label><input class="cm-in" id="ad-pass" type="password" autocomplete="current-password" data-act="adin" placeholder="Password">'+(AD.lmsg?'<p class="cm-note err" role="status">'+esc(AD.lmsg)+'</p>':'')+'<button class="btn pri" type="button" data-act="adlogin"'+(AD.lbusy?' disabled':'')+'>'+(AD.lbusy?'Signing in…':'Sign in')+'</button></section></div>';
@@ -2659,6 +2662,25 @@ function adSignIn(){
   }).catch(function(e){AD.lbusy=false;AD.lmsg=(e&&e.message)||'Could not sign in.';if(cur==='admin')adLogin()});
 }
 function adNf(){app.innerHTML='<div class="narrow"><section class="card"><h2>Not found</h2><p class="sub">There is nothing here.</p></section>'+(CM.user?'<p class="sub"><button type="button" class="adb" data-act="adout">Sign out</button></p>':'')+'</div>'}
+function adViewHtml(){
+  var v=AD.view;if(!v)return '';
+  var nmv=AD.prof[v.id]||'Student',h='<section class="card advw" id="advw"><div class="chead"><h2>'+esc(nmv)+' <small class="sub">· read only</small></h2><button class="adb" type="button" data-act="adviewx">Close</button></div>';
+  if(v.loading)return h+'<p class="sub">Loading…</p></section>';
+  if(v.err)return h+'<p class="cm-note err">'+esc(v.err)+'</p></section>';
+  var d=v.data;
+  if(!d||!d.done)return h+'<p class="sub">No synced progress yet. This user has not saved data to the cloud.</p></section>';
+  var tot=0,dn=0,rows='';
+  PAPERS.forEach(function(pp){
+    var c=0;pp.ch.forEach(function(_,i){if(d.done[pp.id+'.'+i])c++});
+    tot+=pp.ch.length;dn+=c;var r=pp.ch.length?c/pp.ch.length*100:0;
+    rows+='<div class="advr"><span>'+esc(pp.en)+'</span><span class="bar"><i style="width:'+r+'%"></i></span><b>'+c+'/'+pp.ch.length+'</b></div>';
+  });
+  var log=d.log||{},sec=0,days=0,wk=0,i,t=new Date();
+  Object.keys(log).forEach(function(k){var n=+log[k]||0;sec+=n;if(n>0)days++});
+  for(i=0;i<7;i++){var x=new Date(t);x.setDate(t.getDate()-i);wk+=+log[dkey(x)]||0}
+  h+='<div class="adst"><div><b>'+(tot?(dn/tot*100).toFixed(1):'0.0')+'%</b><span>Overall</span></div><div><b>'+dn+'/'+tot+'</b><span>Chapters</span></div><div><b>'+fmt(sec)+'</b><span>Total study</span></div><div><b>'+fmt(wk)+'</b><span>Last 7 days</span></div><div><b>'+days+'</b><span>Days studied</span></div></div>'+rows+'</section>';
+  return h;
+}
 function adLoad(){
   if(AD.loading)return;AD.loading=true;
   Promise.all([
@@ -2697,9 +2719,10 @@ function renderAdmin(){
     AD.users.slice().sort(function(a,b){return new Date(b.last_sign_in_at||b.created_at)-new Date(a.last_sign_in_at||a.created_at)}).forEach(function(u){
       var st=AD.stats[u.id]||{},seen=st.updated_at||u.last_sign_in_at,days=seen?Math.floor((Date.now()-new Date(seen))/864e5):null;
       var me=CM.user&&u.id===CM.user.id;
-      h+='<tr><td>'+esc(nm(u.id))+(me?' (you)':'')+(AD.adm&&AD.adm[u.id]?' <small class="sub">· admin</small>':'')+'</td><td>'+esc(u.email||'')+'</td><td>'+(st.overall_pct!=null?(+st.overall_pct).toFixed(1)+'%':'–')+'</td><td>'+(st.today_date===td?fmt(+st.today_sec||0):'0m')+'</td><td>'+(+st.streak||0)+'</td><td>'+(days===null?'–':days===0?'Today':days+' d ago')+'</td><td>'+(st.topics_total==null?'–':(+st.topics_total>0?'On':'Off'))+'</td><td>'+(me?'':(AD.adm?'<button type="button" class="adb'+(AD.arm==='adrole:'+u.id?' d arm':'')+'" data-act="adrole" data-id="'+esc(u.id)+'">'+(AD.arm==='adrole:'+u.id?'Sure?':(AD.adm[u.id]?'Remove admin':'Make admin'))+'</button> ':'')+'<button type="button" class="adb" data-act="adpw" data-id="'+esc(u.id)+'">Reset password</button> '+btn('Remove','adrmuser',u.id))+'</td></tr>';
+      h+='<tr><td>'+esc(nm(u.id))+(me?' (you)':'')+(AD.adm&&AD.adm[u.id]?' <small class="sub">· admin</small>':'')+'</td><td>'+esc(u.email||'')+'</td><td>'+(st.overall_pct!=null?(+st.overall_pct).toFixed(1)+'%':'–')+'</td><td>'+(st.today_date===td?fmt(+st.today_sec||0):'0m')+'</td><td>'+(+st.streak||0)+'</td><td>'+(days===null?'–':days===0?'Today':days+' d ago')+'</td><td>'+(st.topics_total==null?'–':(+st.topics_total>0?'On':'Off'))+'</td><td><button type="button" class="adb" data-act="adview" data-id="'+esc(u.id)+'">View</button> '+(me?'':(AD.adm?'<button type="button" class="adb'+(AD.arm==='adrole:'+u.id?' d arm':'')+'" data-act="adrole" data-id="'+esc(u.id)+'">'+(AD.arm==='adrole:'+u.id?'Sure?':(AD.adm[u.id]?'Remove admin':'Make admin'))+'</button> ':'')+'<button type="button" class="adb" data-act="adpw" data-id="'+esc(u.id)+'">Reset password</button> '+btn('Remove','adrmuser',u.id))+'</td></tr>';
     });
     h+='</table></div>';
+    h+=adViewHtml();
     if(AD.rp){h+='<section class="card adpw"><h2>New password for '+esc(nm(AD.rp))+'</h2><label class="cm-l" for="ad-np">New password</label><input class="cm-in" id="ad-np" type="text" autocomplete="off" data-act="adpwin" placeholder="At least 6 characters"><div class="cm-row"><button class="btn pri" type="button" data-act="adpwset">Set password</button><button class="btn" type="button" data-act="adpw" data-id="">Cancel</button></div><p class="sub">Tell the user this password. They can change it themselves from the Community page.</p></section>'}
     if(AD.ok2)h+='<p class="cm-note ok" role="status">'+esc(AD.ok2)+'</p>';
   }else if(AD.tab==='groups'){
@@ -2732,6 +2755,12 @@ function adClick(el,a){
     cmRun(cmSb.rpc('admin_set_admin',{uid:id,make:!(AD.adm&&AD.adm[id])})).then(function(){AD.ok=null;AD.loading=false;renderAdmin()}).catch(function(e){AD.err=(e&&e.message)||'Failed.';renderAdmin()});
     return true;
   }
+  if(a==='adview'){
+    AD.view={id:id,loading:true};renderAdmin();var vw=document.getElementById('advw');if(vw)vw.scrollIntoView({behavior:RM?'auto':'smooth',block:'nearest'});
+    cmRun(cmSb.rpc('admin_user_data',{uid:id})).then(function(r){if(AD.view&&AD.view.id===id){AD.view={id:id,data:r};renderAdmin()}}).catch(function(e){if(AD.view&&AD.view.id===id){AD.view={id:id,err:(e&&e.message)||'Failed.'};renderAdmin()}});
+    return true;
+  }
+  if(a==='adviewx'){AD.view=null;renderAdmin();return true}
   if(a==='adpw'){AD.rp=id||null;AD.ok2='';AD.err='';renderAdmin();var f=document.getElementById('ad-np');if(f)f.focus();return true}
   if(a==='adpwset'){adSetPw();return true}
   if(a==='adlogin'){adSignIn();return true}
