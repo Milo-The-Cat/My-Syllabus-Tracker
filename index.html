@@ -2669,16 +2669,22 @@ function adViewHtml(){
   if(v.err)return h+'<p class="cm-note err">'+esc(v.err)+'</p></section>';
   var d=v.data;
   if(!d||!d.done)return h+'<p class="sub">No synced progress yet. This user has not saved data to the cloud.</p></section>';
-  var tot=0,dn=0,rows='';
+  var tot=0,dn=0,chd=0,cht=0,rows='';
   PAPERS.forEach(function(pp){
-    var c=0;pp.ch.forEach(function(_,i){if(d.done[pp.id+'.'+i])c++});
-    tot+=pp.ch.length;dn+=c;var r=pp.ch.length?c/pp.ch.length*100:0;
-    rows+='<div class="advr"><span>'+esc(pp.en)+'</span><span class="bar"><i style="width:'+r+'%"></i></span><b>'+c+'/'+pp.ch.length+'</b></div>';
+    var pt=0,pd=0;
+    pp.ch.forEach(function(c,i){
+      var ids=c[1].split('|').map(function(_,j){return pp.id+'.'+i+'.'+j});
+      ((d.custom||{})[pp.id+'.'+i]||[]).forEach(function(x){ids.push(x.id)});
+      var cd=ids.filter(function(k){return d.done[k]}).length;
+      pt+=ids.length;pd+=cd;cht++;if(ids.length&&cd===ids.length)chd++;
+    });
+    tot+=pt;dn+=pd;var r=pt?pd/pt*100:0;
+    rows+='<div class="advr"><span>'+esc(pp.en)+'</span><span class="bar"><i style="width:'+r+'%"></i></span><b>'+r.toFixed(0)+'%</b></div>';
   });
   var log=d.log||{},sec=0,days=0,wk=0,i,t=new Date();
   Object.keys(log).forEach(function(k){var n=+log[k]||0;sec+=n;if(n>0)days++});
   for(i=0;i<7;i++){var x=new Date(t);x.setDate(t.getDate()-i);wk+=+log[dkey(x)]||0}
-  h+='<div class="adst"><div><b>'+(tot?(dn/tot*100).toFixed(1):'0.0')+'%</b><span>Overall</span></div><div><b>'+dn+'/'+tot+'</b><span>Chapters</span></div><div><b>'+fmt(sec)+'</b><span>Total study</span></div><div><b>'+fmt(wk)+'</b><span>Last 7 days</span></div><div><b>'+days+'</b><span>Days studied</span></div></div>'+rows+'</section>';
+  h+='<div class="adst"><div><b>'+(tot?(dn/tot*100).toFixed(1):'0.0')+'%</b><span>Overall</span></div><div><b>'+chd+'/'+cht+'</b><span>Chapters done</span></div><div><b>'+fmt(sec)+'</b><span>Total study</span></div><div><b>'+fmt(wk)+'</b><span>Last 7 days</span></div><div><b>'+days+'</b><span>Days studied</span></div></div>'+rows+'</section>';
   return h;
 }
 function adLoad(){
