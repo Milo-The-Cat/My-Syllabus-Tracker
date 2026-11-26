@@ -2493,6 +2493,7 @@ function gtHtml(){
   var h='<div class="gt-c card"><div class="gt-logo" aria-hidden="true"></div><h1 class="gt-t">StudyMate</h1><p class="sub gt-s">Sign in to continue. Your progress syncs to your account.</p>';
   h+='<div class="cm-tabs"><button type="button" class="'+(up?'':'on')+'" data-gt="in">Sign in</button><button type="button" class="'+(up?'on':'')+'" data-gt="up">Create account</button></div>';
   if(up)h+='<label class="cm-l" for="gt-name">Your name</label><input class="cm-in" id="gt-name" maxlength="30" autocomplete="nickname" placeholder="The name your group will see">';
+  if(up)h+='<label class="cm-l" for="gt-code">Invite code</label><input class="cm-in" id="gt-code" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Ask Azmain for the code">';
   h+='<label class="cm-l" for="gt-email">Email</label><input class="cm-in" id="gt-email" type="email" autocomplete="email" placeholder="you@example.com">';
   h+='<label class="cm-l" for="gt-pass">Password</label><input class="cm-in" id="gt-pass" type="password" autocomplete="'+(up?'new-password':'current-password')+'" placeholder="At least 6 characters">';
   if(GT.msg)h+='<p class="cm-note '+(GT.err?'err':'ok')+'" role="status">'+esc(GT.msg)+'</p>';
@@ -2515,7 +2516,7 @@ function gtRender(keep){
     document.body.appendChild(gtEl);
   }
   document.documentElement.classList.add('gated');
-  var saved={};['gt-name','gt-email','gt-pass'].forEach(function(id){var e=document.getElementById(id);if(e)saved[id]=e.value});
+  var saved={};['gt-name','gt-code','gt-email','gt-pass'].forEach(function(id){var e=document.getElementById(id);if(e)saved[id]=e.value});
   gtEl.innerHTML=gtHtml();
   for(var k in saved){var e2=document.getElementById(k);if(e2)e2.value=saved[k]}
 }
@@ -2525,14 +2526,16 @@ function gtAuth(){
   var g=function(id){var e=document.getElementById(id);return e?e.value:''};
   var email=g('gt-email').trim(),pass=g('gt-pass'),up=GT.mode==='up',name='';
   if(up){name=g('gt-name').trim().slice(0,30);if(!name)return gtMsg('Enter your name.',true)}
+  var code=g('gt-code').trim();
+  if(up&&!code)return gtMsg('Enter the invite code.',true);
   if(!email||pass.length<6)return gtMsg('Enter your email and a password of at least 6 characters.',true);
   GT.busy=true;GT.msg='';if(up)CM.name=name;gtRender();
-  var req=up?cmSb.auth.signUp({email:email,password:pass,options:{data:{name:name}}}):cmSb.auth.signInWithPassword({email:email,password:pass});
+  var req=up?cmSb.auth.signUp({email:email,password:pass,options:{data:{name:name,invite:code}}}):cmSb.auth.signInWithPassword({email:email,password:pass});
   Promise.resolve(req).then(function(r){
     GT.busy=false;if(r.error)throw r.error;
     if(up&&!(r.data&&r.data.session))gtMsg('Account created. Check your email to confirm it, then sign in.');
     else gtRender();
-  }).catch(function(e){GT.busy=false;gtMsg((e&&e.message)?e.message:'Something went wrong. Check your connection and try again.',true)});
+  }).catch(function(e){GT.busy=false;var m=(e&&e.message)||'';if(up&&/database error saving new user|invite/i.test(m))m='Invalid invite code. Ask Azmain for the right one.';gtMsg(m||'Something went wrong. Check your connection and try again.',true)});
 }
 function cmInit(){
   if(!SB_URL||!SB_KEY||!window.supabase)return;
@@ -2723,7 +2726,7 @@ window.addEventListener('pagehide',function(){syFlush()});
 
 
 /* ===== Admin page (#admin) — protected by Supabase policies, not by this code ===== */
-var AD={adm:null,rp:null,ok2:'',lmsg:'',lbusy:false,ok:null,loading:false,tab:'users',users:[],prof:{},stats:{},groups:[],mem:[],msgs:[],gsel:null,arm:null,err:'',view:null};
+var AD={adm:null,rp:null,ok2:'',lmsg:'',lbusy:false,ok:null,loading:false,tab:'users',users:[],prof:{},stats:{},groups:[],mem:[],msgs:[],gsel:null,arm:null,err:'',view:null,code:null,codeMsg:''};
 function adLogin(){
   var e0=(document.getElementById('ad-email')||{}).value||'';
   app.innerHTML='<div class="narrow"><section class="card cm-auth"><h2>Admin sign in</h2><label class="cm-l" for="ad-email">Email</label><input class="cm-in" id="ad-email" type="email" autocomplete="email" data-act="adin" placeholder="you@example.com"><label class="cm-l" for="ad-pass">Password</label><input class="cm-in" id="ad-pass" type="password" autocomplete="current-password" data-act="adin" placeholder="Password">'+(AD.lmsg?'<p class="cm-note err" role="status">'+esc(AD.lmsg)+'</p>':'')+'<button class="btn pri" type="button" data-act="adlogin"'+(AD.lbusy?' disabled':'')+'>'+(AD.lbusy?'Signing in…':'Sign in')+'</button></section></div>';
@@ -2779,8 +2782,10 @@ function adLoad(){
     cmRun(cmSb.from('groups').select('*')),
     cmRun(cmSb.from('members').select('group_id,user_id')),
     cmRun(cmSb.from('messages').select('*').order('id',{ascending:false}).limit(400)),
-    Promise.resolve(cmRun(cmSb.from('admins').select('user_id'))).catch(function(){return null})
+    Promise.resolve(cmRun(cmSb.from('admins').select('user_id'))).catch(function(){return null}),
+    Promise.resolve(cmRun(cmSb.rpc('admin_get_signup_code'))).catch(function(){return null})
   ]).then(function(a){
+    AD.code=a[7];
     AD.adm=null;if(a[6]){AD.adm={};a[6].forEach(function(r){AD.adm[r.user_id]=1})}
     AD.users=a[0]||[];AD.prof={};(a[1]||[]).forEach(function(p){AD.prof[p.id]=p.name});
     AD.stats={};(a[2]||[]).forEach(function(r){AD.stats[r.user_id]=r});
@@ -2811,6 +2816,7 @@ function renderAdmin(){
       h+='<tr><td>'+esc(nm(u.id))+(me?' (you)':'')+(AD.adm&&AD.adm[u.id]?' <small class="sub">· admin</small>':'')+'</td><td>'+esc(u.email||'')+'</td><td>'+(st.overall_pct!=null?(+st.overall_pct).toFixed(1)+'%':'–')+'</td><td>'+(st.today_date===td?fmt(+st.today_sec||0):'0m')+'</td><td>'+(+st.streak||0)+'</td><td>'+(days===null?'–':days===0?'Today':days+' d ago')+'</td><td>'+(st.topics_total==null?'–':(+st.topics_total>0?'On':'Off'))+'</td><td><button type="button" class="adb" data-act="adview" data-id="'+esc(u.id)+'">View</button> '+(me?'':(AD.adm?'<button type="button" class="adb'+(AD.arm==='adrole:'+u.id?' d arm':'')+'" data-act="adrole" data-id="'+esc(u.id)+'">'+(AD.arm==='adrole:'+u.id?'Sure?':(AD.adm[u.id]?'Remove admin':'Make admin'))+'</button> ':'')+'<button type="button" class="adb" data-act="adpw" data-id="'+esc(u.id)+'">Reset password</button> '+btn('Remove','adrmuser',u.id))+'</td></tr>';
     });
     h+='</table></div>';
+    h+='<section class="card adcode"><h2>Invite code</h2><p class="sub">New people need this code to create an account. Changing it does not affect existing users.</p><div class="cm-row"><input class="cm-in" id="ad-code" type="text" autocomplete="off" spellcheck="false" value="'+esc(AD.code||'')+'" aria-label="Invite code"><button class="btn pri" type="button" data-act="adcodeset">Save</button></div>'+(AD.codeMsg?'<p class="cm-note '+(AD.codeErr?'err':'ok')+'" role="status">'+esc(AD.codeMsg)+'</p>':'')+'</section>';
     h+=adViewHtml();
     if(AD.rp){h+='<section class="card adpw"><h2>New password for '+esc(nm(AD.rp))+'</h2><label class="cm-l" for="ad-np">New password</label><input class="cm-in" id="ad-np" type="text" autocomplete="off" data-act="adpwin" placeholder="At least 6 characters"><div class="cm-row"><button class="btn pri" type="button" data-act="adpwset">Set password</button><button class="btn" type="button" data-act="adpw" data-id="">Cancel</button></div><p class="sub">Tell the user this password. They can change it themselves from the Community page.</p></section>'}
     if(AD.ok2)h+='<p class="cm-note ok" role="status">'+esc(AD.ok2)+'</p>';
@@ -2847,6 +2853,12 @@ function adClick(el,a){
   if(a==='adview'){
     AD.view={id:id,loading:true};renderAdmin();var vw=document.getElementById('advw');if(vw)vw.scrollIntoView({behavior:RM?'auto':'smooth',block:'nearest'});
     cmRun(cmSb.rpc('admin_user_data',{uid:id})).then(function(r){if(AD.view&&AD.view.id===id){AD.view={id:id,data:r};renderAdmin()}}).catch(function(e){if(AD.view&&AD.view.id===id){AD.view={id:id,err:(e&&e.message)||'Failed.'};renderAdmin()}});
+    return true;
+  }
+  if(a==='adcodeset'){
+    var cv=(document.getElementById('ad-code')||{}).value||'';cv=cv.trim();
+    if(cv.length<4){AD.codeMsg='Code must be at least 4 characters.';AD.codeErr=true;renderAdmin();return true}
+    cmRun(cmSb.rpc('admin_set_signup_code',{code:cv})).then(function(){AD.code=cv;AD.codeMsg='Invite code saved.';AD.codeErr=false;renderAdmin()}).catch(function(e){AD.codeMsg=(e&&e.message)||'Failed.';AD.codeErr=true;renderAdmin()});
     return true;
   }
   if(a==='adviewx'){AD.view=null;renderAdmin();return true}
