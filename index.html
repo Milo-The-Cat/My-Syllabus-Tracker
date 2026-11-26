@@ -1636,7 +1636,7 @@ function renderDash(){
 
   /* backup */
   h+='<details class="card bk"><summary>Backup &amp; Restore</summary><p class="sub" style="margin:8px 0">Your data is stored only in this browser. If you clear browser data it is lost, so copy a backup now and then and keep it somewhere safe.</p>';
-  h+='<div class="acts"><button class="btn pri" type="button" data-act="backup">Copy backup</button><button class="btn" type="button" data-act="restore">Restore</button></div>';
+  h+='<div class="acts"><button class="btn pri" type="button" data-act="backup">Copy backup</button><button class="btn" type="button" data-act="restore">Restore</button><button class="btn" type="button" data-act="bkdl">Download file</button><button class="btn" type="button" data-act="bkpick">Restore from file</button><input type="file" id="bkf" data-act="bkfile" accept=".json,application/json" hidden></div>';
   h+='<label class="nl" for="bk">To restore, paste an earlier backup here and press Restore</label><textarea id="bk" spellcheck="false"></textarea><div class="msg" id="bkmsg" role="status"></div></details>';
   app.innerHTML=h;
 }
@@ -2105,6 +2105,19 @@ app.addEventListener('change',function(e){
     if(ex){ex.d=el.value;save()}
     var lf=document.getElementById('lf-'+el.dataset.key);
     if(lf){var lh2=leftHtml(el.value);lf.className=lh2.c;lf.innerHTML=lh2.h}
+  }else if(act==='bkfile'){
+    var f=el.files&&el.files[0],bm2=document.getElementById('bkmsg');if(!f)return;
+    var rd=new FileReader();
+    rd.onload=function(){
+      try{
+        var o=JSON.parse(rd.result);
+        if(!o||typeof o!=='object'||typeof o.done!=='object')throw new Error('bad');
+        S=normalize(o);save();render();
+        var m4=document.getElementById('bkmsg');if(m4)m4.textContent='Restored from file.';
+      }catch(err){if(bm2)bm2.textContent='This file is not a StudyMate backup.'}
+    };
+    rd.onerror=function(){if(bm2)bm2.textContent='Could not read the file.'};
+    rd.readAsText(f);el.value='';
   }else if(act==='tktick'){
     var tk=byId(S.tasks,el.dataset.id);
     if(tk){tk.done=el.checked;save();render()}
@@ -2420,6 +2433,15 @@ app.addEventListener('click',function(e){
     if(sec>0)addLog(sec,S.timer.ck);
     S.timer=null;save();render();
   }else if(act==='goto'){gotoChapter(el.dataset.ck)}
+  else if(act==='bkdl'){
+    var bm=document.getElementById('bkmsg');
+    try{
+      var blob=new Blob([JSON.stringify(S)],{type:'application/json'}),a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);a.download='studymate-backup-'+dkey(new Date())+'.json';
+      document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(a.href)},2000);
+      if(bm)bm.textContent='Backup file downloaded. Keep it somewhere safe.';
+    }catch(err){if(bm)bm.textContent='Could not download. Use Copy backup instead.'}
+  }else if(act==='bkpick'){var bf=document.getElementById('bkf');if(bf)bf.click()}
   else if(act==='backup'){
     var ta=document.getElementById('bk'),m=document.getElementById('bkmsg');
     ta.value=JSON.stringify(S);ta.select();
