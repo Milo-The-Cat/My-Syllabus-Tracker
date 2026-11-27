@@ -2565,10 +2565,32 @@ function gtResend(){
     if(r&&r.error)throw r.error;gtMsg('A new code was sent.')
   }).catch(function(e){gtMsg((e&&e.message)||'Could not resend. Wait a minute and try again.',true)});
 }
+var cmChk=false;
+function cmCheck(){
+  if(cmChk||!cmSb||!CM.user)return;
+  cmChk=true;
+  Promise.resolve(cmSb.auth.getUser()).then(function(r){
+    cmChk=false;
+    var er=r&&r.error;
+    if(!er)return;
+    var st=er.status,m=(er.message||'')+' '+(er.code||'');
+    if(st===401||st===403||st===404||/not exist|not found|invalid jwt|sub claim|session_not_found/i.test(m))cmKick();
+  }).catch(function(){cmChk=false});
+}
+function cmKick(){
+  if(!CM.user)return;
+  try{syWipe()}catch(e){}
+  Promise.resolve(cmSb.auth.signOut({scope:'local'})).catch(function(){});
+  GT.mode='in';GT.verify='';GT.msg='This account no longer exists. Sign in with another account.';GT.err=true;
+  setTimeout(function(){cmSetUser(null);gtRender()},0);
+}
 function cmInit(){
   if(!SB_URL||!SB_KEY||!window.supabase)return;
   try{cmSb=window.supabase.createClient(SB_URL,SB_KEY)}catch(e){cmSb=null;return}
   gtRender();
+  setInterval(function(){if(!document.hidden)cmCheck()},20000);
+  document.addEventListener('visibilitychange',function(){if(!document.hidden)cmCheck()});
+  window.addEventListener('focus',cmCheck);
   cmSb.auth.onAuthStateChange(function(ev,session){
     setTimeout(function(){cmSetUser(session?session.user:null)},0);
   });
@@ -2591,6 +2613,7 @@ function cmSetUser(u){
   SY.ready=false;if(u)syPull();
   if(u&&cmSb){cmRun(cmSb.rpc('is_admin')).then(function(r){var v=(r===true);if(v!==CM.isAdmin){CM.isAdmin=v;renderNav();updateStats()}}).catch(function(){})}
   cmPaint();gtRender();
+  if(u)setTimeout(cmCheck,1500);
 }
 function cmLoadGroups(sel){
   return cmRun(cmSb.from('members').select('group_id, groups(id,name,code)').eq('user_id',CM.user.id)).then(function(rows){
