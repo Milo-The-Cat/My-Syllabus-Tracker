@@ -6,7 +6,7 @@
 <title>StudyMate</title>
 
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="theme-color" content="#141415">
+<meta name="theme-color" content="#141415"><style>html.pre body>*:not(.gate){visibility:hidden}</style><script>(function(){try{var d=document.documentElement,K=window.localStorage,t=K.getItem('studyTracker.theme'),p=K.getItem('studyTracker.pal');d.setAttribute('data-theme',t==='light'?'light':'dark');if(p===null&&K.getItem('studyTracker.v1')===null)p='graphite';if(p&&p!=='none')d.setAttribute('data-pal',p);d.classList.add('pre');setTimeout(function(){d.classList.remove('pre')},4000)}catch(e){}})()</script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="StudyMate">
@@ -3249,7 +3249,7 @@ palBtn.addEventListener('click',function(){palOpen(true)});
   b2.addEventListener('click',function(){palOpen(true)});
 })();
 
-cmInit();
+cmInit();document.documentElement.classList.remove('pre');
 setInterval(cmPushStats,60000);
 route();
 })();
