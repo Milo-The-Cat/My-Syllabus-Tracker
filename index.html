@@ -898,6 +898,7 @@ var DATA=[
 
 
 var KEY='studyTracker.v1', TKEY='studyTracker.theme';
+try{window.__hadData=localStorage.getItem(KEY)!==null}catch(e){window.__hadData=false}
 function pad(n){return (n<10?'0':'')+n}
 function dkey(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
 function normalize(o){
@@ -3143,7 +3144,7 @@ try{var q=localStorage.getItem(TKEY);if(q==='dark'||q==='light')stT=q}catch(e){}
 document.documentElement.setAttribute('data-theme',stT);
 function flipTheme(src){
   var n=isDark()?'light':'dark';
-  var go=function(){if(palOf(curPal).f){curPal='';try{localStorage.removeItem(PKEY)}catch(e){}document.documentElement.removeAttribute('data-pal');if(typeof palPaint==='function')palPaint()}document.documentElement.setAttribute('data-theme',n);try{localStorage.setItem(TKEY,n)}catch(e){}themeLabel()};
+  var go=function(){if(palOf(curPal).f){curPal='';try{localStorage.setItem(PKEY,'none')}catch(e){}document.documentElement.removeAttribute('data-pal');if(typeof palPaint==='function')palPaint()}document.documentElement.setAttribute('data-theme',n);try{localStorage.setItem(TKEY,n)}catch(e){}themeLabel()};
   if(RM||!document.startViewTransition||!src||!src.getBoundingClientRect||src.offsetParent===null){go();return}
   var r=src.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;
   var rad=Math.hypot(Math.max(x,innerWidth-x),Math.max(y,innerHeight-y));
@@ -3170,7 +3171,7 @@ var PALS=[
 ];
 function palOf(k){for(var i=0;i<PALS.length;i++)if(PALS[i].k===k)return PALS[i];return PALS[0]}
 var curPal='';
-try{var pq=localStorage.getItem(PKEY);if(pq&&palOf(pq).k===pq)curPal=pq}catch(e){}
+try{var pq=localStorage.getItem(PKEY);if(pq&&palOf(pq).k===pq)curPal=pq;else if(pq===null&&!window.__hadData)curPal='graphite'}catch(e){}
 function palApply(){
   var d=document.documentElement;
   if(curPal)d.setAttribute('data-pal',curPal);else d.removeAttribute('data-pal');
@@ -3180,7 +3181,7 @@ function palApply(){
 }
 function setPal(k){
   curPal=k;
-  try{if(k)localStorage.setItem(PKEY,k);else localStorage.removeItem(PKEY)}catch(e){}
+  try{localStorage.setItem(PKEY,k||'none')}catch(e){}
   palApply();palPaint();
 }
 palApply();
