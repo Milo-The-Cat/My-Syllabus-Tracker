@@ -1,6 +1,6 @@
 /* StudyMate service worker: offline app shell */
 var CACHE='syllabus-v2';
-var SHELL=['./','index.html','manifest.webmanifest','icon-192.png','icon-512.png'];
+var SHELL=['./','index.html','manifest.webmanifest','icon-192.png?v=2','icon-512.png?v=2'];
 self.addEventListener('install',function(e){
   e.waitUntil(caches.open(CACHE).then(function(c){return Promise.all(SHELL.map(function(u){return c.add(u).catch(function(){})}))}).then(function(){return self.skipWaiting()}));
 });
