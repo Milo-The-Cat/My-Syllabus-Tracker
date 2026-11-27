@@ -6,7 +6,7 @@
 <title>StudyMate</title>
 
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="theme-color" content="#0f1224">
+<meta name="theme-color" content="#141415">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="StudyMate">
@@ -506,7 +506,8 @@ body::after{width:380px;height:380px;right:-90px;bottom:-110px;background:color-
 @keyframes gtt{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 .gt-ldf{position:absolute;bottom:0;left:0;right:0;font-size:.72rem;color:var(--muted)}
 @media (prefers-reduced-motion:reduce){.gt-bars b,.gt-tip{animation:none}.gt-bars b{height:28px;opacity:.8}}
-.gt-logo{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--accent2));margin:0 auto 12px}
+.gt-logo{width:64px;height:64px;border-radius:18px;background:#e8b24a;color:#141415;display:grid;place-items:center;margin:0 auto 12px}
+.gt-logo svg{width:34px;height:34px}
 .gt-t{font-size:1.3rem;text-align:center;margin:0}
 .gt-s{text-align:center;margin:4px 0 16px}
 .gt-go{width:100%;margin-top:14px}
@@ -617,8 +618,8 @@ html.gated body{overflow:hidden}
 .inst-h{line-height:1.7;margin-top:6px}
 .inst-h b{color:var(--fg)}
 
-.logo.lg{background:none;overflow:hidden;width:38px;height:38px;border-radius:11px}
-.logo.lg svg{width:100%;height:100%;stroke:none;stroke-width:0;fill:none}
+.logo.lg{background:#e8b24a;overflow:hidden;width:38px;height:38px;border-radius:11px;color:#141415}
+.logo.lg svg{width:22px;height:22px;stroke:#141415;stroke-width:2;fill:none}
 
 .cm-bm{display:flex;gap:6px;margin:4px 0 10px;flex-wrap:wrap}
 .cm-bm button{min-height:34px;padding:0 14px;border-radius:99px;border:1px solid var(--line);background:transparent;color:var(--muted);font-size:.82rem;font-weight:700}
@@ -763,10 +764,10 @@ html.gated body{overflow:hidden}
 .wr-sb{margin-top:12px;display:grid;gap:8px}
 .wr-sb>div{display:grid;grid-template-columns:90px minmax(0,1fr) 64px;gap:10px;align-items:center;font-size:.82rem}
 .wr-sb>div>span:last-child{text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
-.wr-sb u{display:block;height:8px;border-radius:9px;background:var(--line);text-decoration:none;overflow:hidden}
 </head>
 <body>
 
+.wr-sb u{display:block;height:8px;border-radius:9px;background:var(--line);text-decoration:none;overflow:hidden}
 .wr-sb u i{display:block;height:100%;border-radius:9px;background:var(--c)}
 .rt{margin-top:14px}
 .rt-h{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:8px}
@@ -780,7 +781,7 @@ html.gated body{overflow:hidden}
 
 <div class="app">
   <aside class="side">
-    <div class="brandbox"><span class="logo lg" aria-hidden="true"><svg viewBox="0 0 512 512"><defs><linearGradient id="lgg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6d74ff"/><stop offset=".55" stop-color="#b48cff"/><stop offset="1" stop-color="#ff7fa8"/></linearGradient><linearGradient id="lg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4f46e5"/><stop offset="1" stop-color="#c026d3"/></linearGradient><linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd36b"/><stop offset="1" stop-color="#ff9a6b"/></linearGradient></defs><rect width="512" height="512" fill="url(#lgg)"/><path d="M256 214c-34-22-78-28-120-18v172c42-10 86-4 120 20 34-24 78-30 120-20V196c-42-10-86-4-120 18z" fill="#fff"/><path d="M256 214v174" stroke="#b48cff" stroke-width="10" stroke-linecap="round"/><path d="M256 96l112 50-112 50-112-50z" fill="#14122b"/><path d="M196 178v36c0 14 26 26 60 26s60-12 60-26v-36l-60 27z" fill="#14122b"/><path d="M368 146v58" stroke="#ffd36b" stroke-width="10" stroke-linecap="round"/><circle cx="368" cy="212" r="12" fill="#ffd36b"/></svg></span><span class="bt"><span class="brand">StudyMate</span><span class="byline">Made by Azmain (DC-27)</span></span></div>
+    <div class="brandbox"><span class="logo lg" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/></svg></span><span class="bt"><span class="brand">StudyMate</span><span class="byline">Made by Azmain (DC-27)</span></span></div>
     <nav class="nav" id="nav" aria-label="Main"></nav>
     <button class="btn sidebtn" id="themeBtn" type="button">Light mode</button>
   </aside>
@@ -2496,13 +2497,14 @@ function cmVal(id){var e=cmEl(id);return e?e.value:''}
 
 
 /* ===== Login gate: everyone must sign in ===== */
+var GT_CAP='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/></svg>';
 var GT_TIPS=['Small steps every day add up.','Revise yesterday\'s topic before starting a new one.','Take a 5 minute break after every 50 minutes.','Start with the hardest chapter while your mind is fresh.','Teach a topic to a friend. If you can explain it, you know it.','Sleep well. Memory is built at night.','Solve past questions after finishing a chapter.','Write short notes in your own words.','Drink water and stretch between sessions.','Consistency beats long, rare study days.'],GT_TI=Math.floor(Math.random()*10);
 var GT={mode:'in',msg:'',err:false,busy:false,verify:''},gtEl=null,gtKey='';
 function gtOn(){return !!(SB_URL&&SB_KEY&&cmSb)}
 function gtHtml(){
-  if(!CM.ready)return '<div class="gt-c gt-ld"><div class="gt-bars" aria-hidden="true"><b></b><b></b><b></b><b></b><b></b></div><div class="gt-wm">StudyMate</div><div class="sub">Getting your chapters ready…</div><div class="gt-tip" id="gt-tip" aria-live="off">'+esc(GT_TIPS[GT_TI%GT_TIPS.length])+'</div><div class="gt-ldf">Made by Azmain (DC-27)</div></div>';
+  if(!CM.ready)return '<div class="gt-c gt-ld"><div class="gt-logo" aria-hidden="true">'+GT_CAP+'</div><div class="gt-bars" aria-hidden="true"><b></b><b></b><b></b><b></b><b></b></div><div class="gt-wm">StudyMate</div><div class="sub">Getting your chapters ready…</div><div class="gt-tip" id="gt-tip" aria-live="off">'+esc(GT_TIPS[GT_TI%GT_TIPS.length])+'</div><div class="gt-ldf">Made by Azmain (DC-27)</div></div>';
   if(GT.verify){
-    var v='<div class="gt-c card"><div class="gt-logo" aria-hidden="true"></div><h1 class="gt-t">Verify your email</h1><p class="sub gt-s">We sent a verification code to <b>'+esc(GT.verify)+'</b>. Enter it below to continue.</p>';
+    var v='<div class="gt-c card"><div class="gt-logo" aria-hidden="true">'+GT_CAP+'</div><h1 class="gt-t">Verify your email</h1><p class="sub gt-s">We sent a verification code to <b>'+esc(GT.verify)+'</b>. Enter it below to continue.</p>';
     v+='<label class="cm-l" for="gt-otp">Verification code</label><input class="cm-in" id="gt-otp" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="Enter the code" style="letter-spacing:4px;text-align:center;font-size:1.2em">';
     if(GT.msg)v+='<p class="cm-note '+(GT.err?'err':'ok')+'" role="status">'+esc(GT.msg)+'</p>';
     v+='<button class="btn pri gt-go" type="button" data-gt-verify'+(GT.busy?' disabled':'')+'>Verify and continue</button>';
@@ -2510,7 +2512,7 @@ function gtHtml(){
     return v+'<p class="sub gt-f">Made by Azmain (DC-27)</p></div>';
   }
   var up=GT.mode==='up';
-  var h='<div class="gt-c card"><div class="gt-logo" aria-hidden="true"></div><h1 class="gt-t">StudyMate</h1><p class="sub gt-s">Sign in to continue. Your progress syncs to your account.</p>';
+  var h='<div class="gt-c card"><div class="gt-logo" aria-hidden="true">'+GT_CAP+'</div><h1 class="gt-t">StudyMate</h1><p class="sub gt-s">Sign in to continue. Your progress syncs to your account.</p>';
   h+='<div class="cm-tabs"><button type="button" class="'+(up?'':'on')+'" data-gt="in">Sign in</button><button type="button" class="'+(up?'on':'')+'" data-gt="up">Create account</button></div>';
   if(up)h+='<label class="cm-l" for="gt-name">Your name</label><input class="cm-in" id="gt-name" maxlength="30" autocomplete="nickname" placeholder="The name your group will see">';
   if(up)h+='<label class="cm-l" for="gt-code">Invite code</label><input class="cm-in" id="gt-code" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Ask Azmain for the code">';
