@@ -2530,7 +2530,7 @@ function gtAuth(){
   if(up&&!code)return gtMsg('Enter the invite code.',true);
   if(!email||pass.length<6)return gtMsg('Enter your email and a password of at least 6 characters.',true);
   GT.busy=true;GT.msg='';if(up)CM.name=name;gtRender();
-  var req=up?cmSb.auth.signUp({email:email,password:pass,options:{data:{name:name,invite:code}}}):cmSb.auth.signInWithPassword({email:email,password:pass});
+  var req=up?cmSb.auth.signUp({email:email,password:pass,options:{data:{name:name,invite:code},emailRedirectTo:location.href.split('#')[0]}}):cmSb.auth.signInWithPassword({email:email,password:pass});
   Promise.resolve(req).then(function(r){
     GT.busy=false;if(r.error)throw r.error;
     if(up&&!(r.data&&r.data.session))gtMsg('Account created. Check your email to confirm it, then sign in.');
