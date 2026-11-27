@@ -496,6 +496,16 @@ body::after{width:380px;height:380px;right:-90px;bottom:-110px;background:color-
 .gate{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;overflow:auto;background:var(--bg);padding:24px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
 .gt-c{width:100%;max-width:380px;margin:auto;text-align:center}
 .gt-c.card{text-align:left;padding:26px 22px}
+.gt-ld{display:flex;flex-direction:column;align-items:center;gap:14px;min-height:60vh;justify-content:center;position:relative}
+.gt-bars{display:flex;gap:6px;align-items:flex-end;height:44px}
+.gt-bars b{width:10px;border-radius:3px;background:var(--accent);height:12px;opacity:.45;animation:gtb 1.1s ease-in-out infinite}
+.gt-bars b:nth-child(2){animation-delay:.12s}.gt-bars b:nth-child(3){animation-delay:.24s}.gt-bars b:nth-child(4){animation-delay:.36s}.gt-bars b:nth-child(5){animation-delay:.48s}
+@keyframes gtb{0%,100%{height:12px;opacity:.45}50%{height:44px;opacity:1}}
+.gt-wm{font-weight:700;font-size:1.25rem;letter-spacing:-.01em;color:var(--fg)}
+.gt-tip{min-height:2.6em;max-width:300px;font-size:.82rem;color:var(--muted);line-height:1.45;animation:gtt .5s ease}
+@keyframes gtt{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.gt-ldf{position:absolute;bottom:0;left:0;right:0;font-size:.72rem;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){.gt-bars b,.gt-tip{animation:none}.gt-bars b{height:28px;opacity:.8}}
 .gt-logo{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--accent2));margin:0 auto 12px}
 .gt-t{font-size:1.3rem;text-align:center;margin:0}
 .gt-s{text-align:center;margin:4px 0 16px}
@@ -754,6 +764,9 @@ html.gated body{overflow:hidden}
 .wr-sb>div{display:grid;grid-template-columns:90px minmax(0,1fr) 64px;gap:10px;align-items:center;font-size:.82rem}
 .wr-sb>div>span:last-child{text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
 .wr-sb u{display:block;height:8px;border-radius:9px;background:var(--line);text-decoration:none;overflow:hidden}
+</head>
+<body>
+
 .wr-sb u i{display:block;height:100%;border-radius:9px;background:var(--c)}
 .rt{margin-top:14px}
 .rt-h{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:8px}
@@ -764,9 +777,6 @@ html.gated body{overflow:hidden}
 .rt-p.tight{background:color-mix(in srgb,#ffb454 18%,transparent);color:#ffb454!important}
 .rt-p.late{background:color-mix(in srgb,#ff6b8a 18%,transparent);color:#ff6b8a!important}
 </style>
-</head>
-<body>
-
 
 <div class="app">
   <aside class="side">
@@ -2486,10 +2496,11 @@ function cmVal(id){var e=cmEl(id);return e?e.value:''}
 
 
 /* ===== Login gate: everyone must sign in ===== */
+var GT_TIPS=['Small steps every day add up.','Revise yesterday\'s topic before starting a new one.','Take a 5 minute break after every 50 minutes.','Start with the hardest chapter while your mind is fresh.','Teach a topic to a friend. If you can explain it, you know it.','Sleep well. Memory is built at night.','Solve past questions after finishing a chapter.','Write short notes in your own words.','Drink water and stretch between sessions.','Consistency beats long, rare study days.'],GT_TI=Math.floor(Math.random()*10);
 var GT={mode:'in',msg:'',err:false,busy:false,verify:''},gtEl=null,gtKey='';
 function gtOn(){return !!(SB_URL&&SB_KEY&&cmSb)}
 function gtHtml(){
-  if(!CM.ready)return '<div class="gt-c"><div class="gt-logo" aria-hidden="true"></div><p class="sub">Loading…</p></div>';
+  if(!CM.ready)return '<div class="gt-c gt-ld"><div class="gt-bars" aria-hidden="true"><b></b><b></b><b></b><b></b><b></b></div><div class="gt-wm">StudyMate</div><div class="sub">Getting your chapters ready…</div><div class="gt-tip" id="gt-tip" aria-live="off">'+esc(GT_TIPS[GT_TI%GT_TIPS.length])+'</div><div class="gt-ldf">Made by Azmain (DC-27)</div></div>';
   if(GT.verify){
     var v='<div class="gt-c card"><div class="gt-logo" aria-hidden="true"></div><h1 class="gt-t">Verify your email</h1><p class="sub gt-s">We sent a verification code to <b>'+esc(GT.verify)+'</b>. Enter it below to continue.</p>';
     v+='<label class="cm-l" for="gt-otp">Verification code</label><input class="cm-in" id="gt-otp" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="Enter the code" style="letter-spacing:4px;text-align:center;font-size:1.2em">';
@@ -2532,6 +2543,7 @@ function gtRender(keep){
   gtEl.innerHTML=gtHtml();
   for(var k in saved){var e2=document.getElementById(k);if(e2)e2.value=saved[k]}
 }
+setInterval(function(){var e=document.getElementById('gt-tip');if(!e||CM.ready)return;GT_TI++;e.style.animation='none';void e.offsetWidth;e.style.animation='';e.textContent=GT_TIPS[GT_TI%GT_TIPS.length]},3000);
 function gtMsg(t,err){GT.msg=t||'';GT.err=!!err;gtRender()}
 function gtAuth(){
   if(GT.busy||!cmSb)return;
