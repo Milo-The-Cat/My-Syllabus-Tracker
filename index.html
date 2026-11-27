@@ -679,6 +679,11 @@ html.gated body{overflow:hidden}
 :root[data-pal="graphite"] .scard{background:var(--bg)}
 :root[data-pal="graphite"] .btn.pri{background:var(--fg);background-image:none;color:var(--bg);box-shadow:none}
 :root[data-pal="mint"][data-theme="light"]{--bg:#effaf5;--glow:#c9efe0;--surface:#ffffff;--fg:#0b2e22;--muted:#567b6b;--line:#d0eadf;--accent:#0d9f6e;--accent2:#0ea5e9;--accent-ink:#ffffff;--accent-soft:#dcf5ea;--track:#d2ece0;--side:#ffffff;--p0:#34d399;--p1:#0d9f6e;--p2:#38bdf8;--p3:#a3e635;color-scheme:light}
+.so-ov{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+.so-dlg{background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:14px;padding:20px;max-width:320px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.4)}
+.so-dlg h3{margin:0 0 6px;font-size:1.05rem}.so-dlg p{margin:0 0 16px;font-size:.88rem;color:var(--muted);line-height:1.5}
+.so-acts{display:flex;gap:8px;justify-content:flex-end}
+.so-acts .btn.so-red{background:#e07b62;color:#141415;border-color:#e07b62;background-image:none}
 .palsheet{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:16px}
 .palsheet.open{display:flex}
 .palcard{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:18px;width:min(460px,100%);max-height:92vh;overflow-y:auto}
@@ -759,14 +764,14 @@ html.gated body{overflow:hidden}
 .wr-st div{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:9px 12px}
 .wr-st b{display:block;font-size:1.15rem;font-variant-numeric:tabular-nums}
 .wr-st b.up{color:#4fd1a1}.wr-st b.dn{color:#ff6b8a}
+</head>
+<body>
+
 .wr-st span{color:var(--muted);font-size:.74rem}
 .wr-b{margin:8px 0 0}.wr-b b{color:var(--fg)}
 .wr-sb{margin-top:12px;display:grid;gap:8px}
 .wr-sb>div{display:grid;grid-template-columns:90px minmax(0,1fr) 64px;gap:10px;align-items:center;font-size:.82rem}
 .wr-sb>div>span:last-child{text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
-</head>
-<body>
-
 .wr-sb u{display:block;height:8px;border-radius:9px;background:var(--line);text-decoration:none;overflow:hidden}
 .wr-sb u i{display:block;height:100%;border-radius:9px;background:var(--c)}
 .rt{margin-top:14px}
@@ -2723,6 +2728,21 @@ function syWipe(){
   if(ok)render();else route();
   SY.applying=false;SY.state='';SY.ready=false;
 }
+function soAsk(){
+  if(document.getElementById('so-ov'))return;
+  var o=document.createElement('div');o.className='so-ov';o.id='so-ov';o.setAttribute('role','dialog');o.setAttribute('aria-modal','true');o.setAttribute('aria-label','Sign out');
+  o.innerHTML='<div class="so-dlg"><h3>Sign out?</h3><p>Your progress is saved in your account. You will need to sign in again to continue.</p><div class="so-acts"><button type="button" class="btn" data-so="no">Cancel</button><button type="button" class="btn so-red" data-so="yes">Sign out</button></div></div>';
+  var close=function(){document.removeEventListener('keydown',kd);o.remove()};
+  var kd=function(e){if(e.key==='Escape')close()};
+  o.addEventListener('click',function(e){
+    var b=e.target.closest('[data-so]');
+    if(b&&b.getAttribute('data-so')==='yes'){close();syOut().catch(cmFail)}
+    else if(b||e.target===o)close();
+  });
+  document.addEventListener('keydown',kd);
+  document.body.appendChild(o);
+  var c=o.querySelector('[data-so=no]');if(c)c.focus();
+}
 function syOut(){
   return syFlush().then(function(){
     if(CM.user&&(syMeta().mt||0)<(S.mt||0))return syPush();
@@ -2931,7 +2951,7 @@ function adClick(el,a){
   if(a==='adpw'){AD.rp=id||null;AD.ok2='';AD.err='';renderAdmin();var f=document.getElementById('ad-np');if(f)f.focus();return true}
   if(a==='adpwset'){adSetPw();return true}
   if(a==='adlogin'){adSignIn();return true}
-  if(a==='adout'){syOut().catch(cmFail);return true}
+  if(a==='adout'){soAsk();return true}
   if(a==='adtab'){AD.tab=el.dataset.tab;AD.arm=null;renderAdmin();return true}
   if(a==='adref'){AD.ok=null;AD.loading=false;renderAdmin();return true}
   if(a==='adgsel'){AD.gsel=id;AD.arm=null;renderAdmin();return true}
@@ -3110,7 +3130,7 @@ function cmClick(el,act){
   else if(act==='cmshare'){S.share=!S.share;save();cmPaint();cmPushStats()}
   else if(act==='cmbm'){CM.bm=el.dataset.bm;cmPaint()}
   else if(act==='cmauth'){cmAuth()}
-  else if(act==='cmout'){syOut().catch(cmFail)}
+  else if(act==='cmout'){soAsk()}
   else if(act==='cmsel'){CM.gid=el.dataset.id;CM.tab='board';CM.msg='';cmPaint();cmOpenGroup()}
   else if(act==='cmtab'){CM.tab=el.dataset.tab;CM.msg='';cmPaint();if(CM.tab==='board')cmLoadBoard()}
   else if(act==='cmcreate'){cmCreate()}
