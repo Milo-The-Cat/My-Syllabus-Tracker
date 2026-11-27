@@ -2485,10 +2485,18 @@ function cmVal(id){var e=cmEl(id);return e?e.value:''}
 
 
 /* ===== Login gate: everyone must sign in ===== */
-var GT={mode:'in',msg:'',err:false,busy:false},gtEl=null,gtKey='';
+var GT={mode:'in',msg:'',err:false,busy:false,verify:''},gtEl=null,gtKey='';
 function gtOn(){return !!(SB_URL&&SB_KEY&&cmSb)}
 function gtHtml(){
   if(!CM.ready)return '<div class="gt-c"><div class="gt-logo" aria-hidden="true"></div><p class="sub">Loading…</p></div>';
+  if(GT.verify){
+    var v='<div class="gt-c card"><div class="gt-logo" aria-hidden="true"></div><h1 class="gt-t">Verify your email</h1><p class="sub gt-s">We sent a verification code to <b>'+esc(GT.verify)+'</b>. Enter it below to continue.</p>';
+    v+='<label class="cm-l" for="gt-otp">Verification code</label><input class="cm-in" id="gt-otp" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="Enter the code" style="letter-spacing:4px;text-align:center;font-size:1.2em">';
+    if(GT.msg)v+='<p class="cm-note '+(GT.err?'err':'ok')+'" role="status">'+esc(GT.msg)+'</p>';
+    v+='<button class="btn pri gt-go" type="button" data-gt-verify'+(GT.busy?' disabled':'')+'>Verify and continue</button>';
+    v+='<p class="sub gt-n"><a href="#" data-gt-resend>Resend code</a> · <a href="#" data-gt-back>Use a different email</a></p>';
+    return v+'<p class="sub gt-f">Made by Azmain (DC-27)</p></div>';
+  }
   var up=GT.mode==='up';
   var h='<div class="gt-c card"><div class="gt-logo" aria-hidden="true"></div><h1 class="gt-t">StudyMate</h1><p class="sub gt-s">Sign in to continue. Your progress syncs to your account.</p>';
   h+='<div class="cm-tabs"><button type="button" class="'+(up?'':'on')+'" data-gt="in">Sign in</button><button type="button" class="'+(up?'on':'')+'" data-gt="up">Create account</button></div>';
@@ -2511,12 +2519,15 @@ function gtRender(keep){
       var m=e.target.closest('[data-gt]');
       if(m){GT.mode=m.getAttribute('data-gt');GT.msg='';gtRender();var f=document.getElementById(GT.mode==='up'?'gt-name':'gt-email');if(f)f.focus();return}
       if(e.target.closest('[data-gt-go]'))gtAuth();
+      if(e.target.closest('[data-gt-verify]'))gtVerify();
+      if(e.target.closest('[data-gt-resend]')){e.preventDefault();gtResend()}
+      if(e.target.closest('[data-gt-back]')){e.preventDefault();GT.verify='';GT.msg='';gtRender()}
     });
-    gtEl.addEventListener('keydown',function(e){if(e.key==='Enter'&&e.target.tagName==='INPUT')gtAuth()});
+    gtEl.addEventListener('keydown',function(e){if(e.key==='Enter'&&e.target.tagName==='INPUT'){if(GT.verify)gtVerify();else gtAuth()}});
     document.body.appendChild(gtEl);
   }
   document.documentElement.classList.add('gated');
-  var saved={};['gt-name','gt-code','gt-email','gt-pass'].forEach(function(id){var e=document.getElementById(id);if(e)saved[id]=e.value});
+  var saved={};['gt-name','gt-code','gt-email','gt-pass','gt-otp'].forEach(function(id){var e=document.getElementById(id);if(e)saved[id]=e.value});
   gtEl.innerHTML=gtHtml();
   for(var k in saved){var e2=document.getElementById(k);if(e2)e2.value=saved[k]}
 }
@@ -2533,9 +2544,26 @@ function gtAuth(){
   var req=up?cmSb.auth.signUp({email:email,password:pass,options:{data:{name:name,invite:code},emailRedirectTo:location.href.split('#')[0]}}):cmSb.auth.signInWithPassword({email:email,password:pass});
   Promise.resolve(req).then(function(r){
     GT.busy=false;if(r.error)throw r.error;
-    if(up&&!(r.data&&r.data.session))gtMsg('Account created. Check your email to confirm it, then sign in.');
+    if(up&&!(r.data&&r.data.session)){GT.verify=email;gtMsg('Code sent. Check your email (and spam folder).')}
     else gtRender();
-  }).catch(function(e){GT.busy=false;var m=(e&&e.message)||'';if(up&&/database error saving new user|invite/i.test(m))m='Invalid invite code. Ask Azmain for the right one.';gtMsg(m||'Something went wrong. Check your connection and try again.',true)});
+  }).catch(function(e){GT.busy=false;var m=(e&&e.message)||'';
+    if(!up&&/not confirmed/i.test(m)){GT.verify=email;cmSb.auth.resend({type:'signup',email:email});return gtMsg('Your email is not verified yet. We sent you a new code.')}if(up&&/database error saving new user|invite/i.test(m))m='Invalid invite code. Ask Azmain for the right one.';gtMsg(m||'Something went wrong. Check your connection and try again.',true)});
+}
+function gtVerify(){
+  if(GT.busy||!cmSb||!GT.verify)return;
+  var e=document.getElementById('gt-otp'),tok=e?e.value.replace(/\s/g,''):'';
+  if(tok.length<6)return gtMsg('Enter the code from your email.',true);
+  GT.busy=true;GT.msg='';gtRender();
+  Promise.resolve(cmSb.auth.verifyOtp({email:GT.verify,token:tok,type:'signup'})).then(function(r){
+    GT.busy=false;if(r.error)throw r.error;
+    GT.verify='';gtRender();
+  }).catch(function(e){GT.busy=false;gtMsg(/expired|invalid/i.test((e&&e.message)||'')?'That code is wrong or expired. Check it or tap Resend code.':((e&&e.message)||'Something went wrong. Try again.'),true)});
+}
+function gtResend(){
+  if(!cmSb||!GT.verify)return;
+  Promise.resolve(cmSb.auth.resend({type:'signup',email:GT.verify})).then(function(r){
+    if(r&&r.error)throw r.error;gtMsg('A new code was sent.')
+  }).catch(function(e){gtMsg((e&&e.message)||'Could not resend. Wait a minute and try again.',true)});
 }
 function cmInit(){
   if(!SB_URL||!SB_KEY||!window.supabase)return;
