@@ -651,6 +651,18 @@ html.gated body{overflow:hidden}
 .remrow .nl{margin:0}
 .remt{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:7px 12px;color:var(--fg);color-scheme:inherit}
 .remc .acts{margin:8px 0}
+.row3{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;align-items:start}
+.row3>.card{min-width:0;padding:14px 16px;margin:0}
+.row3 .chead{margin:0 0 8px}.row3 h2{font-size:1rem}
+.row3 .inst-h{font-size:.74rem;line-height:1.5;margin:8px 0 0}
+.swt{width:42px;height:24px;border-radius:99px;border:1px solid var(--line);background:var(--track);position:relative;padding:0;flex:0 0 auto;cursor:pointer}
+.swt i{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--muted);transition:transform .2s}
+.swt.on{background:var(--accent);border-color:var(--accent)}.swt.on i{transform:translateX(18px);background:var(--accent-ink)}
+.insttabs{display:flex;gap:6px;margin:0 0 8px;flex-wrap:wrap}
+.insttabs button{font:inherit;font-size:.78rem;padding:5px 11px;border-radius:99px;border:1px solid var(--line);background:none;color:var(--fg);cursor:pointer}
+.insttabs button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.inst-p{display:none;margin:0 0 8px;font-size:.84rem;line-height:1.5}.inst-p.on{display:block}
+.bkt{margin-top:6px}.bkt summary{cursor:pointer;font-size:.8rem;color:var(--muted)}
 
 .cm-meb{display:flex;gap:8px;flex-wrap:wrap}
 .cm-sh.on{border-color:var(--accent);color:var(--accent)}
@@ -1675,20 +1687,23 @@ function renderDash(){
   h+='</section>';
 
 
-  h+=remCard();
-
+  h+='<div class="row3">'+remCard();
   /* install app */
   if(!isStandalone()){
-    h+='<section class="card inst"><div class="chead"><h2>Install on your phone</h2></div>';
-    h+='<p class="sub">Add this tracker to your home screen. It opens like an app, full screen, and the dashboard also opens without internet.</p>';
+    var ua=(navigator.userAgent||''),it=/iPhone|iPad|iPod/.test(ua)?'ios':(/Android/.test(ua)?'and':'pc');
+    h+='<section class="card inst"><div class="chead"><h2>Install app</h2></div>';
+    h+='<div class="tabs insttabs" role="tablist"><button type="button" role="tab" class="'+(it==='and'?'on':'')+'" data-act="insttab" data-v="and">Android</button><button type="button" role="tab" class="'+(it==='ios'?'on':'')+'" data-act="insttab" data-v="ios">iPhone</button><button type="button" role="tab" class="'+(it==='pc'?'on':'')+'" data-act="insttab" data-v="pc">Computer</button></div>';
+    h+='<p class="sub inst-p'+(it==='and'?' on':'')+'" data-p="and">Tap the \u22ee menu in Chrome, then <b>Install app</b> or <b>Add to Home screen</b>.</p>';
+    h+='<p class="sub inst-p'+(it==='ios'?' on':'')+'" data-p="ios">In Safari, tap the Share button, then <b>Add to Home Screen</b>.</p>';
+    h+='<p class="sub inst-p'+(it==='pc'?' on':'')+'" data-p="pc">In Chrome or Edge, click the install icon at the right end of the address bar.</p>';
     h+='<div class="acts"><button class="btn pri" type="button" id="instBtn" data-act="install"'+(deferredInstall?'':' hidden')+'>Install app</button></div>';
-    h+='<p class="sub inst-h"><b>Android (Chrome):</b> tap the \u22ee menu, then <b>Install app</b> or <b>Add to Home screen</b>.<br><b>iPhone (Safari):</b> tap the Share button, then <b>Add to Home Screen</b>.<br><b>Computer (Chrome/Edge):</b> click the install icon at the right end of the address bar.</p></section>';
+    h+='<p class="sub" style="margin:0;font-size:.74rem">Opens full screen like an app, and works without internet.</p></section>';
   }
-
   /* backup */
-  h+='<details class="card bk"><summary>Backup &amp; Restore</summary><p class="sub" style="margin:8px 0">Your data is stored only in this browser. If you clear browser data it is lost, so copy a backup now and then and keep it somewhere safe.</p>';
-  h+='<div class="acts"><button class="btn pri" type="button" data-act="backup">Copy backup</button><button class="btn" type="button" data-act="restore">Restore</button><button class="btn" type="button" data-act="bkdl">Download file</button><button class="btn" type="button" data-act="bkpick">Restore from file</button><input type="file" id="bkf" data-act="bkfile" accept=".json,application/json" hidden></div>';
-  h+='<label class="nl" for="bk">To restore, paste an earlier backup here and press Restore</label><textarea id="bk" spellcheck="false"></textarea><div class="msg" id="bkmsg" role="status"></div></details>';
+  h+='<section class="card bk"><div class="chead"><h2>Backup &amp; Restore</h2></div><p class="sub" style="margin:0 0 8px;font-size:.78rem">Keep a backup file somewhere safe.</p>';
+  h+='<div class="acts"><button class="btn pri" type="button" data-act="bkdl">Download file</button><button class="btn" type="button" data-act="bkpick">Restore from file</button><input type="file" id="bkf" data-act="bkfile" accept=".json,application/json" hidden></div>';
+  h+='<div class="msg" id="bkmsg" role="status"></div>';
+  h+='<details class="bkt"><summary>Copy or paste backup text</summary><div class="acts"><button class="btn" type="button" data-act="backup">Copy backup</button><button class="btn" type="button" data-act="restore">Restore</button></div><label class="nl" for="bk">To restore, paste an earlier backup here and press Restore</label><textarea id="bk" spellcheck="false"></textarea></details></section></div>';
   app.innerHTML=h;
 }
 
@@ -2366,12 +2381,12 @@ function remBanner(){
   return '<section class="card remb"><div><b>'+m.t+'</b><p class="sub">'+m.b+'</p></div><button class="btn pri" type="button" data-act="start" data-ck="'+curCk()+'">Start studying</button></section>';
 }
 function remCard(){
-  var h='<section class="card remc"><div class="chead"><h2>Daily reminder</h2><span class="sub">'+(S.rem.on?'On':'Off')+'</span></div>';
-  h+='<p class="sub">Get a nudge if you have not studied by your chosen time. It also protects your streak.</p>';
+  var on=!!S.rem.on;
+  var h='<section class="card remc"><div class="chead"><h2>Daily reminder</h2><button type="button" class="swt'+(on?' on':'')+'" role="switch" aria-checked="'+on+'" aria-label="Daily reminder" data-act="remtoggle"><i></i></button></div>';
   h+='<div class="remrow"><label class="nl" for="remt">Remind me at</label><input type="time" id="remt" class="remt" data-act="remtime" value="'+S.rem.t+'"></div>';
-  h+='<div class="acts"><button class="btn pri" type="button" data-act="remtoggle">'+(S.rem.on?'Turn off':'Turn on')+'</button><button class="btn" type="button" data-act="remtest">Send test</button></div>';
+  h+='<div class="acts"><button class="btn" type="button" data-act="remtest">Send test</button></div>';
   h+='<div class="msg" id="remmsg" role="status"></div>';
-  h+='<p class="sub inst-h">Notifications arrive while the app is open or running in the background on your phone (installing it helps). If the app is fully closed, the reminder shows as a banner when you open the dashboard.</p></section>';
+  h+='<p class="sub inst-h">A nudge if you have not studied by this time. It works while the app is open or in the background; if it is closed you will see a banner on opening.</p></section>';
   return h;
 }
 function remMsg(t){var m=document.getElementById('remmsg');if(m)m.textContent=t}
@@ -2441,6 +2456,10 @@ app.addEventListener('click',function(e){
     var pp=S.pomo;
     if(pp.end>0){pp.rem=pomoRem();pp.end=0}else{pp.end=Date.now()+pp.rem*1000;if(pp.m==='f')S.now[curCk()]=1;try{document.title='StudyMate'}catch(e){}}
     save();render();
+  }
+  else if(act==='insttab'){
+    var v=el.dataset.v;document.querySelectorAll('.insttabs button').forEach(function(x){x.classList.toggle('on',x===el)});
+    document.querySelectorAll('.inst-p').forEach(function(x){x.classList.toggle('on',x.getAttribute('data-p')===v)});
   }
   else if(act==='pmset'){pmSet=!pmSet;render()}
   else if(act==='pmdef'){['pm-f','pm-b','pm-l'].forEach(function(id,i){var e=document.getElementById(id);if(e)e.value=[25,5,15][i]})}
