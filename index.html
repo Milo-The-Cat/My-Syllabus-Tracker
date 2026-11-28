@@ -399,12 +399,13 @@ body{padding:0;background:var(--bg)}
 .bdg.lock .bi{background:var(--accent-soft);color:var(--muted);border:1px dashed var(--line)}
 .bdg.lock b{color:var(--muted)}
 .rq-h{font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:6px 0}
-.rq{list-style:none;margin:0 0 8px;padding:0;display:flex;flex-direction:column;gap:6px}
-.rq button{width:100%;display:flex;align-items:center;gap:10px;text-align:left;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:9px 12px;min-height:44px}
-.rq button:hover{border-color:var(--c)}
-.rq .dot{width:9px;height:9px;border-radius:50%;background:var(--c);flex:0 0 auto}
-.rq span{display:flex;flex-direction:column;min-width:0;font-size:.9rem}
-.rq small{color:var(--muted);font-size:.74rem}
+.rq{list-style:none;margin:0 0 6px;padding:0;display:flex;flex-direction:column}
+.rq li+li{border-top:1px solid var(--line)}
+.rq button{width:100%;display:flex;align-items:center;gap:9px;text-align:left;background:none;border:0;border-radius:8px;padding:6px 4px;min-height:40px}
+.rq button:hover{background:var(--accent-soft)}
+.rq .dot{width:8px;height:8px;border-radius:50%;background:var(--c);flex:0 0 auto}
+.rq span{flex:1;min-width:0;font-size:.86rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rq small{color:var(--muted);font-size:.7rem;white-space:nowrap;max-width:46%;overflow:hidden;text-overflow:ellipsis;margin-left:auto}
 .rq-e{margin:0 0 8px}
 .flt{flex-wrap:wrap}
 .revrow{display:flex;align-items:center;gap:10px;margin:10px 0}
@@ -1459,6 +1460,7 @@ function routineHtml(cks,days){
   pick.forEach(function(ck){var c=chapterOf(ck);h+='<li class="s-'+c.p.sid+'"><button type="button" data-act="goto" data-ck="'+ck+'"><i class="dot"></i><span>'+esc(c.p.ch[c.ci][0])+'<small>'+c.p.en+' · Chapter '+(c.ci+1)+'</small></span></button></li>'});
   return h+'</ul></div>';
 }
+function rqShort(t){return String(t).replace(' Paper','').replace('whole chapter','whole')}
 function weakListHtml(){
   var weak=[],need=[];
   PAPERS.forEach(function(p){p.ch.forEach(function(c,ci){
@@ -1470,10 +1472,10 @@ function weakListHtml(){
   var h='<section class="card"><div class="chead"><h2>Revision queue</h2></div>';
   h+='<div class="rq-h">Weak topics ('+weak.length+')</div>';
   if(!weak.length)h+='<p class="sub rq-e">Mark a whole chapter or a single topic as weak.</p>';
-  else{h+='<ul class="rq">';weak.slice(0,8).forEach(function(x){h+='<li class="s-'+x.sid+'"><button type="button" data-act="goto" data-ck="'+x.ck+'"><i class="dot"></i><span>'+esc(x.t)+'<small>'+esc(x.c)+'</small></span></button></li>'});h+='</ul>';if(weak.length>8)h+='<p class="sub">+'+(weak.length-8)+' more</p>'}
+  else{h+='<ul class="rq">';weak.slice(0,8).forEach(function(x){h+='<li class="s-'+x.sid+'"><button type="button" data-act="goto" data-ck="'+x.ck+'"><i class="dot"></i><span>'+esc(x.t)+'</span><small>'+esc(rqShort(x.c))+'</small></button></li>'});h+='</ul>';if(weak.length>8)h+='<p class="sub">+'+(weak.length-8)+' more</p>'}
   h+='<div class="rq-h">Needs revision ('+need.length+')</div>';
   if(!need.length)h+='<p class="sub rq-e">Finished chapters with no revision yet will show up here.</p>';
-  else{h+='<ul class="rq">';need.slice(0,8).forEach(function(x){h+='<li class="s-'+x.sid+'"><button type="button" data-act="goto" data-ck="'+x.ck+'"><i class="dot"></i><span>'+esc(x.c)+'<small>'+esc(x.p)+'</small></span></button></li>'});h+='</ul>';if(need.length>8)h+='<p class="sub">+'+(need.length-8)+' more</p>'}
+  else{h+='<ul class="rq">';need.slice(0,8).forEach(function(x){h+='<li class="s-'+x.sid+'"><button type="button" data-act="goto" data-ck="'+x.ck+'"><i class="dot"></i><span>'+esc(x.c)+'</span><small>'+esc(rqShort(x.p))+'</small></button></li>'});h+='</ul>';if(need.length>8)h+='<p class="sub">+'+(need.length-8)+' more</p>'}
   return h+'</section>';
 }
 var filt='all';
