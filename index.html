@@ -2250,6 +2250,21 @@ function saveName(){
   var i=document.getElementById('nm');
   S.name=i?i.value.trim().slice(0,30):S.name;
   nameEdit=false;save();render();
+  cmRename(S.name);cmNameSync();
+}
+/* one name everywhere: dashboard, account, groups, chat and the admin panel */
+function cmRename(n){
+  n=(n||'').trim().slice(0,30);
+  if(!n||!cmSb||!CM.user||CM.name===n)return;
+  CM.name=n;CM.names[CM.user.id]=n;
+  var id=CM.user.id;
+  try{cmRun(cmSb.from('profiles').upsert({id:id,name:n})).catch(function(){})}catch(e){}
+  try{var r=cmSb.auth.updateUser({data:{name:n}});if(r&&r.catch)r.catch(function(){})}catch(e){}
+  if(CM.rows)CM.rows.forEach(function(x){if(x.id===id)x.name=n});
+  if(AD&&AD.prof)AD.prof[id]=n;
+  if(cur==='community')try{renderCommunity()}catch(e){}
+  if(cur==='admin')try{renderAdmin()}catch(e){}
+  renderNav();
 }
 app.addEventListener('keydown',function(e){
   var ds=e.target.dataset||{};
@@ -2660,7 +2675,24 @@ function gtResend(){
   }).catch(function(e){gtMsg((e&&e.message)||'Could not resend. Wait a minute and try again.',true)});
 }
 var cmChk=false;
+/* keep the profile name (shown in admin, groups, chat) equal to the name set in the app */
+var cmNameBusy=false;
+function cmNameSync(){
+  var n=((S&&S.name)||'').trim().slice(0,30);
+  if(!n||!cmSb||!CM.user||cmNameBusy||CM.srvName===n)return;
+  cmNameBusy=true;var id=CM.user.id;
+  Promise.resolve(cmRun(cmSb.from('profiles').upsert({id:id,name:n}))).then(function(){
+    CM.srvName=n;CM.name=n;CM.names[id]=n;
+    if(AD&&AD.prof)AD.prof[id]=n;
+    try{var r=cmSb.auth.updateUser({data:{name:n}});if(r&&r.catch)r.catch(function(){})}catch(e){}
+    cmNameBusy=false;
+    if(cur==='admin')try{renderAdmin()}catch(e){}
+    if(cur==='community')try{renderCommunity()}catch(e){}
+  }).catch(function(){cmNameBusy=false});
+}
 function cmCheck(){
+  cmNameSync();
+  if(cur==='admin'&&AD.ok===true&&!AD.loading&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)))try{adLoad()}catch(e){}
   if(cmChk||!cmSb||!CM.user)return;
   cmChk=true;
   Promise.resolve(cmSb.auth.getUser()).then(function(r){
@@ -2700,7 +2732,7 @@ function cmSetUser(u){
   CM.user=u;CM.groups=[];CM.gid=null;CM.rows=[];CM.msgs=[];CM.msg='';cmUnsub();
   if(u){
     CM.name=(u.user_metadata&&u.user_metadata.name)||CM.name||'Student';
-    cmRun(cmSb.from('profiles').upsert({id:u.id,name:CM.name})).then(function(){cmPushStats();return cmLoadGroups()}).catch(cmFail);
+    CM.srvName=CM.name;cmRun(cmSb.from('profiles').upsert({id:u.id,name:CM.name})).then(function(){cmPushStats();cmNameSync();return cmLoadGroups()}).catch(cmFail);
   }
   AD.ok=null;if(cur==='admin')renderAdmin();
   CM.isAdmin=false;renderNav();updateStats();
@@ -2838,6 +2870,7 @@ function syMerge(a,b){
 }
 function syApply(ns,pal){
   SY.applying=true;
+  setTimeout(function(){cmRename(S.name);cmNameSync()},50);
   ns.timer=S.timer;ns.pomo=S.pomo;
   S=ns;
   try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
