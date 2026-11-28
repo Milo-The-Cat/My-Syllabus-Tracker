@@ -3375,6 +3375,20 @@ palBtn.addEventListener('click',function(){palOpen(true)});
       return Promise.all(jobs);
     }).catch(function(){}).then(function(){setTimeout(fin,500)});
   }
+  /* laptop: two-finger swipe down on the trackpad while already at the top */
+  var wa=0,wt=null,wlast=0,wok=false;
+  document.addEventListener('wheel',function(e){
+    if(busy)return;
+    var now=Date.now(),fresh=now-wlast>350;wlast=now;
+    if(fresh){wa=0;wok=ok(e.target)&&e.deltaY<0}
+    if(!wok)return;
+    if(e.deltaY>0||top()>0){wok=false;wa=0;hide();return}
+    wa+=-e.deltaY;var d=wa*.3;
+    el.classList.add('drag');paint(d);
+    clearTimeout(wt);
+    if(d>=T){wok=false;wa=0;go();return}
+    wt=setTimeout(function(){wa=0;hide()},260);
+  },{passive:true});
   window.appRefresh=go;
 })();
 cmInit();document.documentElement.classList.remove('pre');
