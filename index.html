@@ -658,10 +658,11 @@ html.gated body{overflow:hidden}
 .remrow .nl{margin:0}
 .remt{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:7px 12px;color:var(--fg);color-scheme:inherit}
 .remc .acts{margin:8px 0}
-.row3{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;align-items:start}
-.row3>.card{min-width:0;padding:14px 16px;margin:0}
-.row3 .chead{margin:0 0 8px}.row3 h2{font-size:1rem}
-.row3 .inst-h{font-size:.74rem;line-height:1.5;margin:8px 0 0}
+.row3{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;align-items:stretch}
+.row3>.card,.remc{min-width:0;padding:14px 16px;margin:0}
+.row3 .chead,.remc .chead{margin:0 0 8px}.row3 h2,.remc h2{font-size:1rem}
+.remc .inst-h{font-size:.74rem;line-height:1.5;margin:8px 0 0}
+.row3>.card{display:flex;flex-direction:column}
 .swt{width:42px;height:24px;border-radius:99px;border:1px solid var(--line);background:var(--track);position:relative;padding:0;flex:0 0 auto;cursor:pointer}
 .swt i{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--muted);transition:transform .2s}
 .swt.on{background:var(--accent);border-color:var(--accent)}.swt.on i{transform:translateX(18px);background:var(--accent-ink)}
@@ -1693,10 +1694,10 @@ function renderDash(){
     h+='<details class="exsel" data-p="newbox"'+(exOpen.newbox?' open':'')+'><summary>Choose subjects &amp; chapters <span data-extot="new">'+exSel.length+' selected</span></summary>'+exPicker('new',exSel)+'</details></div>';
   }
   h+='</section>';
-  h=hPre.replace('@@EXAMS@@',function(){return h});
+  h=hPre.replace('@@EXAMS@@',function(){return h+remCard()});
 
 
-  h+='<div class="row3">'+remCard();
+  h+='<div class="row3">';
   /* install app */
   if(!isStandalone()){
     var ua=(navigator.userAgent||''),it=/iPhone|iPad|iPod/.test(ua)?'ios':(/Android/.test(ua)?'and':'pc');
