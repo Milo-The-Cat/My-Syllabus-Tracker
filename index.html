@@ -722,6 +722,12 @@ html.gated body{overflow:hidden}
 .so-dlg h3{margin:0 0 6px;font-size:1.05rem}.so-dlg p{margin:0 0 16px;font-size:.88rem;color:var(--muted);line-height:1.5}
 .so-acts{display:flex;gap:8px;justify-content:flex-end}
 .so-acts .btn.so-red{background:#e07b62;color:#141415;border-color:#e07b62;background-image:none}
+#ptr{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 10px);transform:translate(-50%,-90px);opacity:0;z-index:9500;display:flex;align-items:center;gap:10px;background:var(--surface);color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:8px 16px;box-shadow:0 8px 24px rgba(0,0,0,.35);font-size:.8rem;pointer-events:none;transition:transform .22s ease,opacity .2s ease}
+#ptr.drag{transition:none}
+.ptr-b{display:flex;gap:3px;align-items:flex-end;height:20px}.ptr-b b{display:block;width:4px;height:5px;border-radius:2px;background:#e8b24a}
+#ptr.spin .ptr-b b{animation:ptrb 1s ease-in-out infinite}#ptr.spin .ptr-b b:nth-child(2){animation-delay:.1s}#ptr.spin .ptr-b b:nth-child(3){animation-delay:.2s}#ptr.spin .ptr-b b:nth-child(4){animation-delay:.3s}#ptr.spin .ptr-b b:nth-child(5){animation-delay:.4s}
+@keyframes ptrb{0%,100%{height:5px;opacity:.5}50%{height:20px;opacity:1}}
+@media (prefers-reduced-motion:reduce){#ptr.spin .ptr-b b{animation:none;height:14px}}
 .palsheet{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:16px}
 .palsheet.open{display:flex}
 .palcard{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:18px;width:min(460px,100%);max-height:92vh;overflow-y:auto}
@@ -3317,6 +3323,60 @@ palBtn.addEventListener('click',function(){palOpen(true)});
   b2.addEventListener('click',function(){palOpen(true)});
 })();
 
+/* ===== Pull down to refresh ===== */
+(function(){
+  var el=document.createElement('div');el.id='ptr';el.setAttribute('aria-live','polite');
+  el.innerHTML='<div class="ptr-b" aria-hidden="true"><b></b><b></b><b></b><b></b><b></b></div><span id="ptr-t">Pull to refresh</span>';
+  document.body.appendChild(el);
+  var tx=el.querySelector('#ptr-t'),bars=el.querySelectorAll('.ptr-b b'),y0=null,dy=0,busy=false,T=70;
+  function top(){return window.pageYOffset||document.documentElement.scrollTop||0}
+  function ok(t){
+    if(busy||document.documentElement.classList.contains('gated')||document.getElementById('so-ov'))return false;
+    var ps=document.querySelector('.palsheet');if(ps&&getComputedStyle(ps).display!=='none')return false;
+    if(t&&t.closest&&t.closest('input,textarea,select,[contenteditable]'))return false;
+    return top()<=0;
+  }
+  function paint(d){
+    var p=Math.min(1,d/T);
+    el.style.opacity=String(Math.min(1,d/30));
+    el.style.transform='translate(-50%,'+(Math.min(d,110)-60)+'px)';
+    bars.forEach(function(b,i){b.style.height=(5+p*(4+(i%3)*5))+'px'});
+    tx.textContent=d>=T?'Release to refresh':'Pull to refresh';
+  }
+  function hide(){el.classList.remove('drag');el.style.opacity='';el.style.transform='';bars.forEach(function(b){b.style.height=''})}
+  document.addEventListener('touchstart',function(e){
+    if(e.touches.length===1&&ok(e.target)){y0=e.touches[0].clientY;dy=0}else y0=null;
+  },{passive:true});
+  document.addEventListener('touchmove',function(e){
+    if(y0===null)return;
+    var d=(e.touches[0].clientY-y0)*.5;
+    if(d<=0||top()>0){if(dy>0)hide();y0=null;dy=0;return}
+    dy=d;el.classList.add('drag');paint(d);
+  },{passive:true});
+  function end(){
+    if(y0===null)return;y0=null;
+    if(dy>=T)go();else hide();
+    dy=0;
+  }
+  document.addEventListener('touchend',end,{passive:true});
+  document.addEventListener('touchcancel',end,{passive:true});
+  function go(){
+    busy=true;el.classList.remove('drag');el.classList.add('spin');tx.textContent='Refreshing…';
+    el.style.opacity='1';el.style.transform='translate(-50%,14px)';
+    var done=false,fin=function(){if(done)return;done=true;try{location.reload()}catch(e){}};
+    setTimeout(fin,8000);
+    /* 1. save progress, 2. check for a new version, 3. reload */
+    Promise.resolve().then(function(){return syFlush()}).then(function(){
+      if(CM.user&&(syMeta().mt||0)<(S.mt||0))return syPush();
+    }).catch(function(){}).then(function(){
+      var jobs=[];
+      try{if(navigator.serviceWorker&&navigator.serviceWorker.getRegistration)jobs.push(navigator.serviceWorker.getRegistration().then(function(r){return r&&r.update()}).catch(function(){}))}catch(e){}
+      try{jobs.push(fetch(location.pathname,{cache:'reload'}).catch(function(){}))}catch(e){}
+      return Promise.all(jobs);
+    }).catch(function(){}).then(function(){setTimeout(fin,500)});
+  }
+  window.appRefresh=go;
+})();
 cmInit();document.documentElement.classList.remove('pre');
 setInterval(cmPushStats,60000);
 route();
